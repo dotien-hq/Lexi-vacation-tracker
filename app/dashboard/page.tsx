@@ -2,15 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Users,
-  Clock,
-  CalendarDays,
-  AlertCircle,
-  ChevronRight,
-  Check,
-  X,
-} from 'lucide-react';
+import { Users, Clock, CalendarDays, AlertCircle, ChevronRight, Check, X } from 'lucide-react';
 import { Employee, LeaveRequest, LeaveStatus } from '@/types';
 
 export default function DashboardPage() {
@@ -42,10 +34,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleStatusUpdate = async (
-    requestId: number,
-    status: LeaveStatus
-  ) => {
+  const handleStatusUpdate = async (requestId: number, status: LeaveStatus) => {
     try {
       const response = await fetch(`/api/requests/${requestId}`, {
         method: 'PATCH',
@@ -70,9 +59,7 @@ export default function DashboardPage() {
   }
 
   const activeEmployees = employees.filter((e) => e.isActive);
-  const pendingRequests = requests.filter(
-    (r) => r.status === LeaveStatus.REQUESTED
-  );
+  const pendingRequests = requests.filter((r) => r.status === LeaveStatus.REQUESTED);
 
   const getInitialsBg = (name: string) => {
     const colors = [
@@ -87,9 +74,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-12 animate-in fade-in duration-700">
       <header>
-        <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">
-          Kontrolna ploča
-        </h1>
+        <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Kontrolna ploča</h1>
         <p className="text-slate-500 mt-2 font-medium">
           Pregled statusa i aktivnih zahtjeva za cijeli tim.
         </p>
@@ -98,23 +83,15 @@ export default function DashboardPage() {
       {pendingRequests.length > 0 && (
         <section className="bg-white rounded-[24px] border border-slate-200 shadow-lg shadow-slate-200/50 overflow-hidden border-l-8 border-l-orange-400">
           <div className="p-8 border-b border-slate-100 flex items-center gap-3">
-            <Clock
-              className="text-orange-500"
-              size={24}
-              strokeWidth={2}
-            />
-            <h2 className="text-2xl font-bold text-slate-900">
-              Zahtjevi na čekanju
-            </h2>
+            <Clock className="text-orange-500" size={24} strokeWidth={2} />
+            <h2 className="text-2xl font-bold text-slate-900">Zahtjevi na čekanju</h2>
             <span className="ml-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-black">
               {pendingRequests.length}
             </span>
           </div>
           <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
             {pendingRequests.map((req) => {
-              const emp = employees.find(
-                (e) => e.id === req.employeeId
-              );
+              const emp = employees.find((e) => e.id === req.employeeId);
               return (
                 <div
                   key={req.id}
@@ -129,21 +106,11 @@ export default function DashboardPage() {
                       {emp?.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-bold text-slate-900 text-xl tracking-tight">
-                        {emp?.name}
-                      </p>
+                      <p className="font-bold text-slate-900 text-xl tracking-tight">{emp?.name}</p>
                       <p className="text-sm font-medium text-slate-500 flex items-center gap-2 mt-1">
-                        <CalendarDays
-                          size={16}
-                          className="text-slate-400"
-                        />
-                        {new Date(req.startDate).toLocaleDateString(
-                          'hr-HR'
-                        )}{' '}
-                        —{' '}
-                        {new Date(req.endDate).toLocaleDateString(
-                          'hr-HR'
-                        )}
+                        <CalendarDays size={16} className="text-slate-400" />
+                        {new Date(req.startDate).toLocaleDateString('hr-HR')} —{' '}
+                        {new Date(req.endDate).toLocaleDateString('hr-HR')}
                         <span className="bg-blue-50 text-[#0041F0] px-2 py-0.5 rounded font-black text-xs">
                           ({req.daysCount} dana)
                         </span>
@@ -152,20 +119,13 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex gap-3">
                     <button
-                      onClick={() =>
-                        handleStatusUpdate(
-                          req.id,
-                          LeaveStatus.APPROVED
-                        )
-                      }
+                      onClick={() => handleStatusUpdate(req.id, LeaveStatus.APPROVED)}
                       className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3 bg-[#0041F0] text-white rounded-full text-sm font-black hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
                     >
                       <Check size={18} strokeWidth={3} /> Odobri
                     </button>
                     <button
-                      onClick={() =>
-                        handleStatusUpdate(req.id, LeaveStatus.DENIED)
-                      }
+                      onClick={() => handleStatusUpdate(req.id, LeaveStatus.DENIED)}
                       className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3 border border-slate-200 text-slate-600 rounded-full text-sm font-black hover:bg-slate-50 transition-all"
                     >
                       <X size={18} strokeWidth={3} /> Odbij
@@ -180,14 +140,8 @@ export default function DashboardPage() {
 
       <section className="space-y-8">
         <div className="flex items-center gap-3">
-          <Users
-            className="text-[#0041F0]"
-            size={28}
-            strokeWidth={2}
-          />
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-            Zaposlenici
-          </h2>
+          <Users className="text-[#0041F0]" size={28} strokeWidth={2} />
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Zaposlenici</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {activeEmployees.map((emp) => (
@@ -225,9 +179,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-2 gap-4 mb-8">
                 <div
                   className={`p-4 rounded-2xl flex flex-col items-center justify-center transition-all ${
-                    emp.daysCarryOver > 0
-                      ? 'bg-red-50 border border-red-100'
-                      : 'bg-slate-50'
+                    emp.daysCarryOver > 0 ? 'bg-red-50 border border-red-100' : 'bg-slate-50'
                   }`}
                 >
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
@@ -236,19 +188,13 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-1.5">
                     <span
                       className={`text-xl font-black ${
-                        emp.daysCarryOver > 0
-                          ? 'text-red-700'
-                          : 'text-slate-400'
+                        emp.daysCarryOver > 0 ? 'text-red-700' : 'text-slate-400'
                       }`}
                     >
                       {emp.daysCarryOver}
                     </span>
                     {emp.daysCarryOver > 0 && (
-                      <AlertCircle
-                        className="text-red-500"
-                        size={16}
-                        strokeWidth={2}
-                      />
+                      <AlertCircle className="text-red-500" size={16} strokeWidth={2} />
                     )}
                   </div>
                 </div>
@@ -256,21 +202,15 @@ export default function DashboardPage() {
                   <span className="text-[10px] font-black uppercase tracking-widest text-[#0041F0]/50 mb-1">
                     Novi dani
                   </span>
-                  <span className="text-xl font-black text-[#0041F0]">
-                    {emp.daysCurrentYear}
-                  </span>
+                  <span className="text-xl font-black text-[#0041F0]">{emp.daysCurrentYear}</span>
                 </div>
               </div>
 
               <div className="pt-6 border-t border-slate-50 flex justify-between items-center">
-                <span className="text-sm font-bold text-slate-400">
-                  Dostupno ukupno
-                </span>
+                <span className="text-sm font-bold text-slate-400">Dostupno ukupno</span>
                 <span className="text-xl font-black text-slate-900">
                   {emp.daysCarryOver + emp.daysCurrentYear}{' '}
-                  <span className="text-sm font-medium text-slate-400">
-                    dana
-                  </span>
+                  <span className="text-sm font-medium text-slate-400">dana</span>
                 </span>
               </div>
             </div>

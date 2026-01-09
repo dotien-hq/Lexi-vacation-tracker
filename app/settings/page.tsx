@@ -18,9 +18,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEmp, setEditingEmp] = useState<Employee | null>(null);
-  const [activeTab, setActiveTab] = useState<'active' | 'archived'>(
-    'active'
-  );
+  const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -52,19 +50,16 @@ export default function SettingsPage() {
 
     try {
       if (editingEmp) {
-        const response = await fetch(
-          `/api/employees/${editingEmp.id}`,
-          {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: formData.name,
-              email: formData.email,
-              daysCarryOver: formData.carryOver,
-              daysCurrentYear: formData.currentYear,
-            }),
-          }
-        );
+        const response = await fetch(`/api/employees/${editingEmp.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            daysCarryOver: formData.carryOver,
+            daysCurrentYear: formData.currentYear,
+          }),
+        });
         if (response.ok) {
           setEditingEmp(null);
         }
@@ -94,10 +89,7 @@ export default function SettingsPage() {
     }
   };
 
-  const updateEmployee = async (
-    id: number,
-    updates: Partial<Employee>
-  ) => {
+  const updateEmployee = async (id: number, updates: Partial<Employee>) => {
     try {
       const response = await fetch(`/api/employees/${id}`, {
         method: 'PATCH',
@@ -121,9 +113,7 @@ export default function SettingsPage() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `vacation-backup-${
-          new Date().toISOString().split('T')[0]
-        }.json`;
+        a.download = `vacation-backup-${new Date().toISOString().split('T')[0]}.json`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -213,8 +203,7 @@ export default function SettingsPage() {
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              Arhivirani (
-              {employees.filter((e) => !e.isActive).length})
+              Arhivirani ({employees.filter((e) => !e.isActive).length})
             </button>
           </div>
           <button
@@ -248,10 +237,7 @@ export default function SettingsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredEmployees.map((emp) => (
-                <tr
-                  key={emp.id}
-                  className="group hover:bg-slate-50/50 transition-colors"
-                >
+                <tr key={emp.id} className="group hover:bg-slate-50/50 transition-colors">
                   <td className="px-12 py-8 align-middle">
                     <div className="flex items-center gap-5">
                       <div
@@ -272,18 +258,14 @@ export default function SettingsPage() {
                   <td className="px-12 py-8 align-middle text-center">
                     <span
                       className={`text-xl font-black ${
-                        emp.daysCarryOver > 0
-                          ? 'text-red-600'
-                          : 'text-slate-200'
+                        emp.daysCarryOver > 0 ? 'text-red-600' : 'text-slate-200'
                       }`}
                     >
                       {emp.daysCarryOver}
                     </span>
                   </td>
                   <td className="px-12 py-8 align-middle text-center">
-                    <span className="text-xl font-black text-[#0041F0]">
-                      {emp.daysCurrentYear}
-                    </span>
+                    <span className="text-xl font-black text-[#0041F0]">{emp.daysCurrentYear}</span>
                   </td>
                   <td className="px-12 py-8 align-middle text-right">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
@@ -307,9 +289,7 @@ export default function SettingsPage() {
                         </button>
                       ) : (
                         <button
-                          onClick={() =>
-                            updateEmployee(emp.id, { isActive: true })
-                          }
+                          onClick={() => updateEmployee(emp.id, { isActive: true })}
                           className="p-3.5 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-emerald-500 hover:border-emerald-200 transition-all shadow-sm"
                           title="Aktiviraj"
                         >
@@ -439,9 +419,7 @@ export default function SettingsPage() {
                   type="submit"
                   className="flex-[2] py-6 bg-[#0041F0] text-white font-black rounded-full hover:bg-blue-700 shadow-2xl shadow-blue-200 transition-all uppercase tracking-widest text-xs"
                 >
-                  {editingEmp
-                    ? 'Spremi promjene'
-                    : 'Dodaj zaposlenika'}
+                  {editingEmp ? 'Spremi promjene' : 'Dodaj zaposlenika'}
                 </button>
               </div>
             </form>

@@ -31,15 +31,9 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <div className="flex items-center">
-            <span className="text-2xl font-black text-slate-900 tracking-tight">
-              LEXI
-            </span>
-            <span className="mx-3 text-slate-300 font-light text-2xl">
-              |
-            </span>
-            <span className="text-xl font-medium text-slate-500">
-              Godišnji
-            </span>
+            <span className="text-2xl font-black text-slate-900 tracking-tight">LEXI</span>
+            <span className="mx-3 text-slate-300 font-light text-2xl">|</span>
+            <span className="text-xl font-medium text-slate-500">Godišnji</span>
           </div>
           <nav className="flex space-x-6">
             {navItems.map((item) => (
@@ -47,18 +41,10 @@ export default function Navigation() {
                 key={item.path}
                 href={item.path}
                 className={`flex items-center gap-2 px-3 py-2 text-sm font-bold transition-all duration-200 ${
-                  pathname === item.path
-                    ? 'text-[#0041F0]'
-                    : 'text-slate-500 hover:text-[#0041F0]'
+                  pathname === item.path ? 'text-[#0041F0]' : 'text-slate-500 hover:text-[#0041F0]'
                 }`}
               >
-                <span
-                  className={
-                    pathname === item.path
-                      ? 'text-[#0041F0]'
-                      : 'text-slate-400'
-                  }
-                >
+                <span className={pathname === item.path ? 'text-[#0041F0]' : 'text-slate-400'}>
                   {item.icon}
                 </span>
                 <span className="hidden sm:inline">{item.label}</span>

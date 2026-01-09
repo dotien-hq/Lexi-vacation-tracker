@@ -7,11 +7,7 @@ export const metadata: Metadata = {
   description: 'Croatian vacation/leave management system',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="hr">
       <body
@@ -23,8 +19,7 @@ export default function RootLayout({
           {children}
         </main>
         <footer className="bg-white border-t border-slate-100 py-8 text-center text-sm font-medium text-slate-400">
-          &copy; {new Date().getFullYear()} Lexi &bull; Croatian
-          Vacation Tracker
+          &copy; {new Date().getFullYear()} Lexi &bull; Croatian Vacation Tracker
         </footer>
       </body>
     </html>

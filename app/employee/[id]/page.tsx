@@ -29,9 +29,7 @@ export default function EmployeeDetailPage() {
   const [endDate, setEndDate] = useState('');
   const [daysPreview, setDaysPreview] = useState(0);
   const [error, setError] = useState('');
-  const [editingReqId, setEditingReqId] = useState<number | null>(
-    null
-  );
+  const [editingReqId, setEditingReqId] = useState<number | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -49,10 +47,7 @@ export default function EmployeeDetailPage() {
       } else {
         const count = calculateBusinessDays(start, end);
         setDaysPreview(count);
-        if (
-          employee &&
-          count > employee.daysCarryOver + employee.daysCurrentYear
-        ) {
+        if (employee && count > employee.daysCarryOver + employee.daysCurrentYear) {
           setError('Nema dovoljno dostupnih dana.');
         } else {
           setError('');
@@ -85,14 +80,11 @@ export default function EmployeeDetailPage() {
 
     try {
       if (editingReqId) {
-        const response = await fetch(
-          `/api/requests/${editingReqId}`,
-          {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ startDate, endDate }),
-          }
-        );
+        const response = await fetch(`/api/requests/${editingReqId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ startDate, endDate }),
+        });
         if (response.ok) {
           setEditingReqId(null);
         }
@@ -116,10 +108,7 @@ export default function EmployeeDetailPage() {
     }
   };
 
-  const handleStatusUpdate = async (
-    requestId: number,
-    status: LeaveStatus
-  ) => {
+  const handleStatusUpdate = async (requestId: number, status: LeaveStatus) => {
     try {
       const response = await fetch(`/api/requests/${requestId}`, {
         method: 'PATCH',
@@ -177,9 +166,7 @@ export default function EmployeeDetailPage() {
   if (!employee) {
     return (
       <div className="text-center py-20">
-        <h2 className="text-2xl font-black text-slate-900">
-          Zaposlenik nije pronađen
-        </h2>
+        <h2 className="text-2xl font-black text-slate-900">Zaposlenik nije pronađen</h2>
         <button
           onClick={() => router.push('/dashboard')}
           className="mt-4 text-[#0041F0] font-bold hover:underline"
@@ -216,9 +203,7 @@ export default function EmployeeDetailPage() {
               <h1 className="text-5xl font-black text-slate-900 tracking-tighter leading-none">
                 {employee.name}
               </h1>
-              <p className="text-xl text-slate-400 font-semibold mt-2">
-                {employee.email}
-              </p>
+              <p className="text-xl text-slate-400 font-semibold mt-2">{employee.email}</p>
             </div>
           </div>
         </div>
@@ -229,9 +214,7 @@ export default function EmployeeDetailPage() {
             </span>
             <span
               className={`text-2xl font-black ${
-                employee.daysCarryOver > 0
-                  ? 'text-red-600'
-                  : 'text-slate-200'
+                employee.daysCarryOver > 0 ? 'text-red-600' : 'text-slate-200'
               }`}
             >
               {employee.daysCarryOver}
@@ -241,9 +224,7 @@ export default function EmployeeDetailPage() {
             <span className="block text-[10px] text-[#0041F0]/60 font-black uppercase tracking-[0.2em] mb-2">
               NOVI DANI
             </span>
-            <span className="text-2xl font-black text-[#0041F0]">
-              {employee.daysCurrentYear}
-            </span>
+            <span className="text-2xl font-black text-[#0041F0]">{employee.daysCurrentYear}</span>
           </div>
         </div>
       </header>
@@ -268,11 +249,7 @@ export default function EmployeeDetailPage() {
         <section className="lg:col-span-5">
           <div className="bg-white p-10 md:p-12 rounded-[40px] border border-slate-100 shadow-lg shadow-slate-200/50 sticky top-28">
             <h2 className="text-3xl font-black text-slate-900 mb-12 flex items-center gap-4 tracking-tight">
-              <CalendarIcon
-                size={32}
-                className="text-[#0041F0]"
-                strokeWidth={2.5}
-              />
+              <CalendarIcon size={32} className="text-[#0041F0]" strokeWidth={2.5} />
               {editingReqId ? 'Uredi zahtjev' : 'Novi zahtjev'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-10">
@@ -337,9 +314,7 @@ export default function EmployeeDetailPage() {
                       Trajanje:
                     </span>
                     <span
-                      className={`text-xl font-black ${
-                        error ? 'text-red-600' : 'text-[#0041F0]'
-                      }`}
+                      className={`text-xl font-black ${error ? 'text-red-600' : 'text-[#0041F0]'}`}
                     >
                       {daysPreview} radna dana
                     </span>
@@ -347,9 +322,7 @@ export default function EmployeeDetailPage() {
                   {error && (
                     <div className="flex items-center gap-2 mt-4 text-red-600">
                       <AlertTriangle size={16} strokeWidth={3} />
-                      <p className="text-xs font-black tracking-tight">
-                        {error}
-                      </p>
+                      <p className="text-xs font-black tracking-tight">{error}</p>
                     </div>
                   )}
                 </div>
@@ -361,15 +334,9 @@ export default function EmployeeDetailPage() {
                   disabled={!!error || !startDate || !endDate}
                   className="w-full bg-[#94AEFF] hover:bg-[#839EF0] text-white font-black py-6 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-4 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0 disabled:shadow-none"
                 >
-                  <Send
-                    size={24}
-                    strokeWidth={2}
-                    className="rotate-[-10deg]"
-                  />
+                  <Send size={24} strokeWidth={2} className="rotate-[-10deg]" />
                   <span className="text-lg">
-                    {editingReqId
-                      ? 'Spremi promjene'
-                      : 'Pošalji zahtjev'}
+                    {editingReqId ? 'Spremi promjene' : 'Pošalji zahtjev'}
                   </span>
                 </button>
                 {editingReqId && (
@@ -393,14 +360,8 @@ export default function EmployeeDetailPage() {
         {/* History Section */}
         <section className="lg:col-span-7 space-y-6">
           <div className="flex items-center gap-3">
-            <History
-              className="text-slate-300"
-              size={28}
-              strokeWidth={2}
-            />
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-              Povijest odmora
-            </h2>
+            <History className="text-slate-300" size={28} strokeWidth={2} />
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Povijest odmora</h2>
           </div>
 
           <div className="bg-white rounded-[32px] border border-slate-100 shadow-lg shadow-slate-200/50 overflow-hidden">
@@ -412,29 +373,18 @@ export default function EmployeeDetailPage() {
                 >
                   {/* Column 1: Icon */}
                   <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-blue-100">
-                    <CalendarIcon
-                      className="text-blue-600"
-                      size={18}
-                      strokeWidth={2.5}
-                    />
+                    <CalendarIcon className="text-blue-600" size={18} strokeWidth={2.5} />
                   </div>
 
                   {/* Column 2: Information Stack */}
                   <div className="flex-1 min-w-0">
                     <div className="text-slate-900 font-semibold text-base whitespace-nowrap overflow-hidden text-ellipsis">
-                      {new Date(req.startDate).toLocaleDateString(
-                        'hr-HR'
-                      )}{' '}
-                      —{' '}
-                      {new Date(req.endDate).toLocaleDateString(
-                        'hr-HR'
-                      )}
+                      {new Date(req.startDate).toLocaleDateString('hr-HR')} —{' '}
+                      {new Date(req.endDate).toLocaleDateString('hr-HR')}
                     </div>
                     <div className="text-sm text-slate-500 mt-0.5 font-medium">
                       {req.daysCount} dana • Kreirano{' '}
-                      {new Date(req.createdAt).toLocaleDateString(
-                        'hr-HR'
-                      )}
+                      {new Date(req.createdAt).toLocaleDateString('hr-HR')}
                     </div>
                   </div>
 
@@ -445,15 +395,15 @@ export default function EmployeeDetailPage() {
                         req.status === LeaveStatus.APPROVED
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                           : req.status === LeaveStatus.DENIED
-                          ? 'bg-red-50 text-red-700 border-red-100'
-                          : 'bg-amber-50 text-amber-700 border-amber-100'
+                            ? 'bg-red-50 text-red-700 border-red-100'
+                            : 'bg-amber-50 text-amber-700 border-amber-100'
                       }`}
                     >
                       {req.status === LeaveStatus.APPROVED
                         ? 'Odobreno'
                         : req.status === LeaveStatus.DENIED
-                        ? 'Odbijeno'
-                        : 'Na čekanju'}
+                          ? 'Odbijeno'
+                          : 'Na čekanju'}
                     </span>
                   </div>
 
@@ -462,24 +412,14 @@ export default function EmployeeDetailPage() {
                     {req.status === LeaveStatus.REQUESTED && (
                       <>
                         <button
-                          onClick={() =>
-                            handleStatusUpdate(
-                              req.id,
-                              LeaveStatus.APPROVED
-                            )
-                          }
+                          onClick={() => handleStatusUpdate(req.id, LeaveStatus.APPROVED)}
                           className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-100 rounded-full transition-all"
                           title="Odobri"
                         >
                           <Check size={18} strokeWidth={3} />
                         </button>
                         <button
-                          onClick={() =>
-                            handleStatusUpdate(
-                              req.id,
-                              LeaveStatus.DENIED
-                            )
-                          }
+                          onClick={() => handleStatusUpdate(req.id, LeaveStatus.DENIED)}
                           className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-full transition-all"
                           title="Odbij"
                         >
@@ -498,11 +438,7 @@ export default function EmployeeDetailPage() {
 
                     <button
                       onClick={() => {
-                        if (
-                          confirm(
-                            'Jeste li sigurni da želite obrisati ovaj zahtjev?'
-                          )
-                        )
+                        if (confirm('Jeste li sigurni da želite obrisati ovaj zahtjev?'))
                           deleteRequest(req.id);
                       }}
                       className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-full transition-all"

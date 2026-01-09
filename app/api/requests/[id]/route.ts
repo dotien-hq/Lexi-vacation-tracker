@@ -2,13 +2,11 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { calculateBusinessDays } from '@/lib/holidayCalculator';
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
     const body = await request.json();
-    const requestId = parseInt(params.id);
+    const requestId = parseInt(id);
 
     // Handle status update with day deduction logic
     if (body.status) {
@@ -18,17 +16,11 @@ export async function PATCH(
       });
 
       if (!leaveRequest) {
-        return NextResponse.json(
-          { error: 'Request not found' },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: 'Request not found' }, { status: 404 });
       }
 
       // If approving a request that wasn't approved before
-      if (
-        body.status === 'APPROVED' &&
-        leaveRequest.status !== 'APPROVED'
-      ) {
+      if (body.status === 'APPROVED' && leaveRequest.status !== 'APPROVED') {
         const employee = leaveRequest.employee;
         let needed = leaveRequest.daysCount;
         let newCarry = employee.daysCarryOver;
@@ -72,10 +64,7 @@ export async function PATCH(
       });
 
       if (!leaveRequest) {
-        return NextResponse.json(
-          { error: 'Request not found' },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: 'Request not found' }, { status: 404 });
       }
 
       // Refund days if previously approved
@@ -91,9 +80,7 @@ export async function PATCH(
       }
 
       // Recalculate business days
-      const start = new Date(
-        body.startDate || leaveRequest.startDate
-      );
+      const start = new Date(body.startDate || leaveRequest.startDate);
       const end = new Date(body.endDate || leaveRequest.endDate);
       const newCount = calculateBusinessDays(start, end);
 
@@ -112,34 +99,23 @@ export async function PATCH(
       return NextResponse.json(updated);
     }
 
-    return NextResponse.json(
-      { error: 'Invalid update' },
-      { status: 400 }
-    );
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to update request' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Invalid update' }, { status: 400 });
+  } catch (_error) {
+    return NextResponse.json({ error: 'Failed to update request' }, { status: 500 });
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
-    const requestId = parseInt(params.id);
+    const requestId = parseInt(id);
 
     const leaveRequest = await prisma.leaveRequest.findUnique({
       where: { id: requestId },
     });
 
     if (!leaveRequest) {
-      return NextResponse.json(
-        { error: 'Request not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
     }
 
     // Refund days if approved
@@ -159,10 +135,7 @@ export async function DELETE(
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to delete request' },
-      { status: 500 }
-    );
+  } catch (_error) {
+    return NextResponse.json({ error: 'Failed to delete request' }, { status: 500 });
   }
 }

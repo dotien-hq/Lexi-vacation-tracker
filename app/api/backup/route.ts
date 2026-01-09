@@ -23,9 +23,6 @@ export async function GET() {
       },
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to create backup' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create backup' }, { status: 500 });
   }
 }

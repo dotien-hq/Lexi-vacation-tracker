@@ -1,8 +1,7 @@
-
 export enum LeaveStatus {
   REQUESTED = 'REQUESTED',
   APPROVED = 'APPROVED',
-  DENIED = 'DENIED'
+  DENIED = 'DENIED',
 }
 
 export interface Employee {

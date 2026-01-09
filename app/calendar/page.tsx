@@ -2,20 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Calendar as CalendarIcon,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { Employee, LeaveRequest, LeaveStatus } from '@/types';
 
 export default function CalendarPage() {
   const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
-  const [currentDate, setCurrentDate] = useState(
-    new Date(2026, 0, 1)
-  );
+  const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 1));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -56,27 +50,13 @@ export default function CalendarPage() {
     'Prosinac',
   ];
 
-  const daysInMonth = (year: number, month: number) =>
-    new Date(year, month + 1, 0).getDate();
-  const firstDayOfMonth = (year: number, month: number) =>
-    new Date(year, month, 1).getDay();
+  const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
   const prevMonth = () =>
-    setCurrentDate(
-      new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth() - 1,
-        1
-      )
-    );
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const nextMonth = () =>
-    setCurrentDate(
-      new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth() + 1,
-        1
-      )
-    );
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   const goToToday = () => {
     const d = new Date();
     setCurrentDate(new Date(d.getFullYear(), d.getMonth(), 1));
@@ -104,8 +84,7 @@ export default function CalendarPage() {
       return (
         d >= start &&
         d <= end &&
-        (r.status === LeaveStatus.APPROVED ||
-          r.status === LeaveStatus.REQUESTED)
+        (r.status === LeaveStatus.APPROVED || r.status === LeaveStatus.REQUESTED)
       );
     });
   };
@@ -125,9 +104,7 @@ export default function CalendarPage() {
         <div className="p-10 md:px-14 md:py-12 flex flex-col sm:flex-row items-center justify-between gap-8">
           <div className="flex items-center gap-4">
             <h2 className="text-5xl font-black tracking-tighter flex items-center gap-4">
-              <span className="text-[#0041F0]">
-                {monthNames[currentMonth]}
-              </span>
+              <span className="text-[#0041F0]">{monthNames[currentMonth]}</span>
               <span className="text-slate-200 font-light">/</span>
               <span className="text-slate-900">{currentYear}</span>
             </h2>
@@ -158,18 +135,16 @@ export default function CalendarPage() {
 
         {/* Days Header */}
         <div className="grid grid-cols-7 text-center border-y border-slate-200 bg-slate-50/20">
-          {['PON', 'UTO', 'SRI', 'ČET', 'PET', 'SUB', 'NED'].map(
-            (day, i) => (
-              <div
-                key={day}
-                className={`py-6 text-[10px] font-black uppercase tracking-[0.4em] ${
-                  i >= 5 ? 'text-[#FF8A80]' : 'text-slate-400'
-                }`}
-              >
-                {day}
-              </div>
-            )
-          )}
+          {['PON', 'UTO', 'SRI', 'ČET', 'PET', 'SUB', 'NED'].map((day, i) => (
+            <div
+              key={day}
+              className={`py-6 text-[10px] font-black uppercase tracking-[0.4em] ${
+                i >= 5 ? 'text-[#FF8A80]' : 'text-slate-400'
+              }`}
+            >
+              {day}
+            </div>
+          ))}
         </div>
 
         {/* Calendar Grid */}
@@ -198,8 +173,8 @@ export default function CalendarPage() {
                           isToday
                             ? 'bg-[#0041F0] text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg shadow-blue-300/50'
                             : isWeekend
-                            ? 'text-[#FF8A80]'
-                            : 'text-slate-400'
+                              ? 'text-[#FF8A80]'
+                              : 'text-slate-400'
                         }`}
                       >
                         {day}
@@ -207,25 +182,18 @@ export default function CalendarPage() {
                     </div>
                     <div className="flex-1 space-y-1 overflow-y-auto px-1 scrollbar-hide">
                       {reqs.map((r) => {
-                        const emp = employees.find(
-                          (e) => e.id === r.employeeId
-                        );
-                        const isApproved =
-                          r.status === LeaveStatus.APPROVED;
+                        const emp = employees.find((e) => e.id === r.employeeId);
+                        const isApproved = r.status === LeaveStatus.APPROVED;
                         return (
                           <div
                             key={r.id}
-                            onClick={() =>
-                              router.push(`/employee/${r.employeeId}`)
-                            }
+                            onClick={() => router.push(`/employee/${r.employeeId}`)}
                             className={`text-[11px] font-bold px-3 py-1.5 rounded-full truncate cursor-pointer transition-all hover:translate-y-[-1px] shadow-sm border mx-1 my-0.5 ${
                               isApproved
                                 ? 'bg-[#0041F0] text-white border-blue-400'
                                 : 'bg-orange-400 text-white border-orange-300'
                             }`}
-                            title={`${emp?.name} - ${
-                              isApproved ? 'Odobreno' : 'U najavi'
-                            }`}
+                            title={`${emp?.name} - ${isApproved ? 'Odobreno' : 'U najavi'}`}
                           >
                             {emp?.name}
                           </div>

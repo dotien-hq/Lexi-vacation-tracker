@@ -14,10 +14,7 @@ export async function GET() {
     });
     return NextResponse.json(requests);
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to fetch requests' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch requests' }, { status: 500 });
   }
 }
 
@@ -45,9 +42,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(leaveRequest, { status: 201 });
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to create request' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create request' }, { status: 500 });
   }
 }

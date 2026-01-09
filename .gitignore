@@ -54,6 +54,9 @@ prisma/*.db-journal
 # Kiro IDE
 .kiro/
 
+# Husky
+.husky/_
+
 # OS
 Thumbs.db
 

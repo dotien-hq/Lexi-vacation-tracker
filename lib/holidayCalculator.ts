@@ -69,10 +69,7 @@ const croatianHolidays = [
 function parseLocalDate(dateInput: Date | string): Date {
   if (typeof dateInput === 'string') {
     // Parse "YYYY-MM-DD" as local date, not UTC
-    const [year, month, day] = dateInput
-      .split('T')[0]
-      .split('-')
-      .map(Number);
+    const [year, month, day] = dateInput.split('T')[0].split('-').map(Number);
     return new Date(year, month - 1, day);
   }
   // If it's already a Date, extract components and recreate as local
@@ -88,10 +85,7 @@ function formatLocalDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export function calculateBusinessDays(
-  start: Date | string,
-  end: Date | string
-): number {
+export function calculateBusinessDays(start: Date | string, end: Date | string): number {
   let count = 0;
   const current = parseLocalDate(start);
   const endDate = parseLocalDate(end);
