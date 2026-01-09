@@ -1,14 +1,15 @@
 # Lexi Vacation Tracker (Godišnji)
 
-Croatian vacation/leave management system built with Next.js 14, Prisma, and SQLite.
+Croatian vacation/leave management system built with Next.js 15, Prisma, and SQLite.
 
 ## Architecture
 
-- **Framework:** Next.js 14 (App Router)
+- **Framework:** Next.js 15.1.6 (App Router)
 - **Database:** SQLite (local file `prisma/dev.db`)
-- **ORM:** Prisma
-- **API:** Next.js API Routes (Server Actions / Route Handlers)
-- **Frontend:** React 19 with TypeScript
+- **ORM:** Prisma 6.1.0
+- **API:** Next.js Route Handlers
+- **Frontend:** React 19.0.0 with TypeScript 5.8.2
+- **Styling:** Tailwind CSS 3.4.19
 
 ## Setup Instructions
 
@@ -77,17 +78,27 @@ When a leave request is approved:
 
 When an approved request is edited or deleted:
 
-- Days are refunded to `daysCurrentYear` (safety measure per PRD)
+- Days are refunded to `daysCurrentYear` (safety measure)
 
 ### Business Day Calculation
 
 Excludes:
 
 - Weekends (Saturday, Sunday)
-- Croatian public holidays including:
+- Croatian public holidays (2026-2029) including:
+  - **Jan 1:** New Year's Day
+  - **Jan 6:** Epiphany
+  - **Easter Sunday & Monday** (variable dates)
+  - **May 1:** Labour Day
+  - **May 30:** Statehood Day
+  - **Corpus Christi** (variable date)
+  - **Jun 22:** Anti-Fascist Struggle Day
+  - **Aug 5:** Victory and Homeland Thanksgiving Day
+  - **Aug 15:** Assumption of Mary
   - **Nov 1:** All Saints' Day
   - **Nov 18:** Remembrance Day
-  - All other Croatian national holidays (2026-2029)
+  - **Dec 25:** Christmas Day
+  - **Dec 26:** St. Stephen's Day
 
 ## API Routes
 
@@ -109,7 +120,22 @@ Excludes:
 
 - `GET /api/backup` - Export full database to JSON
 
-## Prisma Commands
+## Development Commands
+
+### Running the App
+
+```bash
+# Development server (port 3000)
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+```
+
+### Database Management
 
 ```bash
 # Generate Prisma Client
@@ -125,26 +151,55 @@ npm run prisma:seed
 npm run prisma:studio
 ```
 
-## Development
+### Code Quality
 
 ```bash
-# Development server
-npm run dev
+# Run tests
+npm test
 
-# Build for production
-npm run build
+# Run tests in watch mode
+npm run test:watch
 
-# Start production server
-npm start
+# Generate test coverage
+npm run test:coverage
+
+# Lint code
+npm run lint
+
+# Auto-fix linting issues
+npm run lint:fix
+
+# Format code with Prettier
+npm run format
+
+# Check formatting
+npm run format:check
+
+# Type check
+npm run type-check
 ```
 
-## Environment Variables
+## Development Practices
 
-Create `.env.local`:
+### Pre-commit Hooks
 
-```
-GEMINI_API_KEY=your_api_key_here
-```
+The project uses Husky and lint-staged to automatically:
+
+- Run ESLint with auto-fix on staged files
+- Format code with Prettier
+- Ensure code quality before commits
+
+### Testing
+
+- **Framework:** Vitest with React Testing Library
+- **Location:** Tests in `__tests__` folders next to source files
+- **Naming:** `*.test.ts` or `*.test.tsx`
+
+### Code Style
+
+- **Linting:** ESLint 8.57 with Next.js and TypeScript rules
+- **Formatting:** Prettier with consistent configuration
+- **Type Safety:** TypeScript strict mode
 
 ## Database Location
 
@@ -156,4 +211,23 @@ To reset the database:
 rm prisma/dev.db
 npx prisma migrate dev --name init
 npm run prisma:seed
+```
+
+## Project Structure
+
+```
+/
+├── app/                    # Next.js App Router
+│   ├── api/               # API Routes
+│   ├── dashboard/         # Dashboard page
+│   ├── calendar/          # Calendar view
+│   ├── employee/[id]/     # Employee detail page
+│   ├── settings/          # Settings page
+│   └── layout.tsx         # Root layout
+├── components/            # Reusable UI components
+├── lib/                   # Utility functions
+│   ├── prisma.ts          # Prisma client
+│   └── holidayCalculator.ts # Business day calculations
+├── prisma/                # Database schema and migrations
+└── types.ts               # TypeScript type definitions
 ```
