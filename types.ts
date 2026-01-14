@@ -35,11 +35,3 @@ export interface LeaveRequest {
   createdAt: Date | string;
   updatedAt: Date | string;
 }
-
-// Legacy type alias for backward compatibility (deprecated)
-/** @deprecated Use Profile instead */
-export type Employee = Profile;
-
-// Legacy enum alias for backward compatibility (deprecated)
-/** @deprecated Use RequestStatus instead */
-export const LeaveStatus = RequestStatus;

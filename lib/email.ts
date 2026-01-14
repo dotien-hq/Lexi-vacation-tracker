@@ -83,14 +83,14 @@ export async function sendRequestNotificationEmail(
       to: adminEmails,
       from: fromEmail,
       subject: `New Leave Request from ${userName}`,
-      text: `A new leave request has been submitted.\n\nEmployee: ${userName}\nStart Date: ${formattedStartDate}\nEnd Date: ${formattedEndDate}\nBusiness Days: ${daysCount}\n\nPlease review and approve or deny this request at ${appUrl}/admin/requests`,
+      text: `A new leave request has been submitted.\n\nUser: ${userName}\nStart Date: ${formattedStartDate}\nEnd Date: ${formattedEndDate}\nBusiness Days: ${daysCount}\n\nPlease review and approve or deny this request at ${appUrl}/admin/requests`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #0041F0;">New Leave Request</h2>
           <p>A new leave request has been submitted.</p>
           <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
             <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Employee:</strong></td>
+              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>User:</strong></td>
               <td style="padding: 8px; border-bottom: 1px solid #ddd;">${userName}</td>
             </tr>
             <tr>
