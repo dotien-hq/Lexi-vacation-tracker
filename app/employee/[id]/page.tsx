@@ -157,7 +157,15 @@ export default function EmployeeDetailPage() {
     setEditingReqId(req.id);
     setStartDate(req.startDate);
     setEndDate(req.endDate);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Scroll to form smoothly only if it's not visible
+    const formElement = document.querySelector('form');
+    if (formElement) {
+      const rect = formElement.getBoundingClientRect();
+      const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+      if (!isVisible) {
+        formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
   };
 
   const getInitialsBg = (name: string) => {
