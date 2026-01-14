@@ -23,15 +23,18 @@ export function createBrowserClient() {
     {
       cookies: {
         get(name: string) {
+          if (typeof document === 'undefined') return null;
           const cookie = document.cookie.split('; ').find((row) => row.startsWith(`${name}=`));
           return cookie ? decodeURIComponent(cookie.split('=')[1]) : null;
         },
         set(name: string, value: string, options: CookieOptions) {
+          if (typeof document === 'undefined') return;
           document.cookie = `${name}=${encodeURIComponent(value)}; path=/; ${
             options.maxAge ? `max-age=${options.maxAge};` : ''
           } ${options.sameSite ? `samesite=${options.sameSite};` : ''}`;
         },
         remove(name: string, options: CookieOptions) {
+          if (typeof document === 'undefined') return;
           document.cookie = `${name}=; path=/; max-age=0; ${
             options.sameSite ? `samesite=${options.sameSite};` : ''
           }`;
