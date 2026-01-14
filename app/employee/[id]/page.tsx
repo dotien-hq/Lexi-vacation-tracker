@@ -30,34 +30,33 @@ export default function EmployeeDetailPage() {
   const [daysPreview, setDaysPreview] = useState(0);
   const [error, setError] = useState('');
   const [editingReqId, setEditingReqId] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (id) {
       fetchEmployee();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      if (end < start) {
-        setDaysPreview(0);
-        setError('Krajnji datum ne može biti prije početnog.');
+      const count = calculateBusinessDays(start, end);
+      setDaysPreview(count);
+
+      const totalAvailableDays = (employee?.daysCarryOver || 0) + (employee?.daysCurrentYear || 0);
+      if (count > totalAvailableDays) {
+        setError('Nema dovoljno dostupnih dana.');
       } else {
-        const count = calculateBusinessDays(start, end);
-        setDaysPreview(count);
-        if (employee && count > employee.daysCarryOver + employee.daysCurrentYear) {
-          setError('Nema dovoljno dostupnih dana.');
-        } else {
-          setError('');
-        }
+        setError('');
       }
     } else {
       setDaysPreview(0);
       setError('');
     }
-  }, [startDate, endDate, employee]);
+  }, [startDate, endDate, employee?.daysCarryOver, employee?.daysCurrentYear]);
 
   const fetchEmployee = async () => {
     try {
@@ -76,20 +75,19 @@ export default function EmployeeDetailPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (error || daysPreview === 0 || !employee) return;
+    if (error || daysPreview === 0 || !employee || isSubmitting) return;
 
+    setIsSubmitting(true);
     try {
+      let response;
       if (editingReqId) {
-        const response = await fetch(`/api/requests/${editingReqId}`, {
+        response = await fetch(`/api/requests/${editingReqId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ startDate, endDate }),
         });
-        if (response.ok) {
-          setEditingReqId(null);
-        }
       } else {
-        const response = await fetch('/api/requests', {
+        response = await fetch('/api/requests', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -100,11 +98,19 @@ export default function EmployeeDetailPage() {
         });
       }
 
+      if (!response.ok) {
+        throw new Error('Failed to submit request');
+      }
+
       setStartDate('');
       setEndDate('');
-      await fetchEmployee(); // Refresh data
+      setEditingReqId(null);
+      await fetchEmployee();
     } catch (error) {
       console.error('Failed to submit request:', error);
+      alert('Greška pri spremanju zahtjeva. Pokušajte ponovno.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -139,6 +145,15 @@ export default function EmployeeDetailPage() {
   };
 
   const startEditing = (req: LeaveRequest) => {
+    if (req.status === LeaveStatus.APPROVED) {
+      if (
+        !confirm(
+          'Ovaj zahtjev je već odobren. Uređivanje će vratiti dane zaposleniku. Želite li nastaviti?'
+        )
+      ) {
+        return;
+      }
+    }
     setEditingReqId(req.id);
     setStartDate(req.startDate);
     setEndDate(req.endDate);
@@ -257,48 +272,29 @@ export default function EmployeeDetailPage() {
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mb-4">
                   Početni datum
                 </label>
-                <div className="relative group">
-                  <input
-                    type={startDate ? 'date' : 'text'}
-                    value={startDate}
-                    placeholder="dd.mm.yyyy."
-                    onFocus={(e) => (e.target.type = 'date')}
-                    onBlur={(e) => {
-                      if (!e.target.value) e.target.type = 'text';
-                    }}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-8 py-6 rounded-2xl border border-slate-200 bg-[#F9FAFB] hover:border-slate-300 focus:outline-none focus:ring-4 focus:ring-blue-600/20 focus:border-[#0041F0] transition-all font-medium text-lg text-slate-900 placeholder:text-slate-400 shadow-sm cursor-pointer block"
-                    required
-                  />
-                  <CalendarIcon
-                    className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-200 pointer-events-none group-hover:text-slate-400 transition-colors"
-                    size={20}
-                  />
-                </div>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                  className="w-full px-8 py-6 rounded-2xl border border-slate-200 bg-[#F9FAFB] hover:border-slate-300 focus:outline-none focus:ring-4 focus:ring-blue-600/20 focus:border-[#0041F0] transition-all font-medium text-lg text-slate-900 shadow-sm cursor-pointer"
+                  required
+                />
               </div>
 
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mb-4">
                   Završni datum
                 </label>
-                <div className="relative group">
-                  <input
-                    type={endDate ? 'date' : 'text'}
-                    value={endDate}
-                    placeholder="dd.mm.yyyy."
-                    onFocus={(e) => (e.target.type = 'date')}
-                    onBlur={(e) => {
-                      if (!e.target.value) e.target.type = 'text';
-                    }}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-8 py-6 rounded-2xl border border-slate-200 bg-[#F9FAFB] hover:border-slate-300 focus:outline-none focus:ring-4 focus:ring-blue-600/20 focus:border-[#0041F0] transition-all font-medium text-lg text-slate-900 placeholder:text-slate-400 shadow-sm cursor-pointer block"
-                    required
-                  />
-                  <CalendarIcon
-                    className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-200 pointer-events-none group-hover:text-slate-400 transition-colors"
-                    size={20}
-                  />
-                </div>
+                <input
+                  type="date"
+                  value={endDate}
+                  min={startDate || undefined}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                  className="w-full px-8 py-6 rounded-2xl border border-slate-200 bg-[#F9FAFB] hover:border-slate-300 focus:outline-none focus:ring-4 focus:ring-blue-600/20 focus:border-[#0041F0] transition-all font-medium text-lg text-slate-900 shadow-sm cursor-pointer"
+                  required
+                />
               </div>
 
               {daysPreview > 0 && (
@@ -331,13 +327,22 @@ export default function EmployeeDetailPage() {
               <div className="flex flex-col gap-4">
                 <button
                   type="submit"
-                  disabled={!!error || !startDate || !endDate}
-                  className="w-full bg-[#94AEFF] hover:bg-[#839EF0] text-white font-black py-6 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-4 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0 disabled:shadow-none"
+                  disabled={!!error || !startDate || !endDate || isSubmitting}
+                  className="w-full bg-[#94AEFF] hover:bg-[#839EF0] text-white font-black py-6 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-4 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0 disabled:shadow-none disabled:cursor-not-allowed"
                 >
-                  <Send size={24} strokeWidth={2} className="rotate-[-10deg]" />
-                  <span className="text-lg">
-                    {editingReqId ? 'Spremi promjene' : 'Pošalji zahtjev'}
-                  </span>
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                      <span className="text-lg">Spremanje...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send size={24} strokeWidth={2} className="rotate-[-10deg]" />
+                      <span className="text-lg">
+                        {editingReqId ? 'Spremi promjene' : 'Pošalji zahtjev'}
+                      </span>
+                    </>
+                  )}
                 </button>
                 {editingReqId && (
                   <button
@@ -347,7 +352,8 @@ export default function EmployeeDetailPage() {
                       setStartDate('');
                       setEndDate('');
                     }}
-                    className="w-full py-4 text-slate-400 font-bold hover:text-slate-900 transition-colors"
+                    disabled={isSubmitting}
+                    className="w-full py-4 text-slate-400 font-bold hover:text-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Odustani
                   </button>
