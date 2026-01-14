@@ -29,11 +29,11 @@ export default function Navigation() {
           return;
         }
 
-        // Fetch the user's profile to get their role
+        // Fetch the user's profile to get their role (match by email, not Supabase auth ID)
         const { data: profile, error } = await supabase
           .from('Profile')
           .select('role')
-          .eq('id', session.user.id)
+          .eq('email', session.user.email)
           .single();
 
         if (error) {
