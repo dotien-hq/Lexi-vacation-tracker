@@ -1,30 +1,88 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutGrid, Calendar, Settings } from 'lucide-react';
+import { LayoutGrid, Calendar, Users, FileText } from 'lucide-react';
+import { createBrowserClient } from '@/lib/supabase';
+
+type UserRole = 'USER' | 'ADMIN' | null;
 
 export default function Navigation() {
   const pathname = usePathname();
+  const [userRole, setUserRole] = useState<UserRole>(null);
+  const [loading, setLoading] = useState(true);
 
-  const navItems = [
+  useEffect(() => {
+    async function fetchUserProfile() {
+      try {
+        const supabase = createBrowserClient();
+
+        // Get the current session
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.user) {
+          setUserRole(null);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch the user's profile to get their role
+        const { data: profile, error } = await supabase
+          .from('Profile')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching user profile:', error);
+          setUserRole(null);
+        } else {
+          setUserRole(profile?.role || null);
+        }
+      } catch (error) {
+        console.error('Error in fetchUserProfile:', error);
+        setUserRole(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchUserProfile();
+  }, []);
+
+  // Base navigation items for all authenticated users
+  const baseNavItems = [
     {
       path: '/dashboard',
       label: 'Dashboard',
       icon: <LayoutGrid size={18} />,
     },
+  ];
+
+  // Admin-only navigation items
+  const adminNavItems = [
     {
-      path: '/calendar',
-      label: 'Kalendar',
+      path: '/admin/users',
+      label: 'Users',
+      icon: <Users size={18} />,
+    },
+    {
+      path: '/admin/requests',
+      label: 'Requests',
+      icon: <FileText size={18} />,
+    },
+    {
+      path: '/admin/calendar',
+      label: 'Calendar',
       icon: <Calendar size={18} />,
     },
-    {
-      path: '/settings',
-      label: 'Admin',
-      icon: <Settings size={18} />,
-    },
   ];
+
+  // Determine which nav items to show based on role
+  const navItems = userRole === 'ADMIN' ? [...baseNavItems, ...adminNavItems] : baseNavItems;
 
   return (
     <header className="bg-white border-b border-slate-100 sticky top-0 z-50">
@@ -39,20 +97,29 @@ export default function Navigation() {
             <span className="text-xl font-medium text-slate-500">Godišnji</span>
           </Link>
           <nav className="flex space-x-6">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                href={item.path}
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-bold transition-all duration-200 ${
-                  pathname === item.path ? 'text-[#0041F0]' : 'text-slate-500 hover:text-[#0041F0]'
-                }`}
-              >
-                <span className={pathname === item.path ? 'text-[#0041F0]' : 'text-slate-400'}>
-                  {item.icon}
-                </span>
-                <span className="hidden sm:inline">{item.label}</span>
-              </Link>
-            ))}
+            {!loading &&
+              navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  className={`flex items-center gap-2 px-3 py-2 text-sm font-bold transition-all duration-200 ${
+                    pathname === item.path || pathname.startsWith(item.path)
+                      ? 'text-[#0041F0]'
+                      : 'text-slate-500 hover:text-[#0041F0]'
+                  }`}
+                >
+                  <span
+                    className={
+                      pathname === item.path || pathname.startsWith(item.path)
+                        ? 'text-[#0041F0]'
+                        : 'text-slate-400'
+                    }
+                  >
+                    {item.icon}
+                  </span>
+                  <span className="hidden sm:inline">{item.label}</span>
+                </Link>
+              ))}
           </nav>
         </div>
       </div>
