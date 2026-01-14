@@ -1,31 +1,97 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Users, Clock, CalendarDays, AlertCircle, ChevronRight, Check, X } from 'lucide-react';
-import { Employee, LeaveRequest, LeaveStatus } from '@/types';
+import { AlertCircle, CalendarDays, Clock, Send, CheckCircle, XCircle } from 'lucide-react';
+import { createBrowserClient } from '@/lib/supabase';
+import { calculateBusinessDays } from '@/lib/holidayCalculator';
+import { calculateAvailableDays, hasSufficientBalance } from '@/lib/vacationBalance';
+
+interface Profile {
+  id: string;
+  email: string;
+  fullName: string | null;
+  role: 'USER' | 'ADMIN';
+  daysCarryOver: number;
+  daysCurrentYear: number;
+  isActive: boolean;
+}
+
+interface LeaveRequest {
+  id: string;
+  profileId: string;
+  startDate: string;
+  endDate: string;
+  daysCount: number;
+  status: 'REQUESTED' | 'APPROVED' | 'DENIED';
+  rejectionReason: string | null;
+  createdAt: string;
+}
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Form state
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [calculatedDays, setCalculatedDays] = useState<number | null>(null);
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    // Calculate business days when dates change
+    if (startDate && endDate) {
+      try {
+        const days = calculateBusinessDays(startDate, endDate);
+        setCalculatedDays(days);
+        setFormError('');
+      } catch {
+        setCalculatedDays(null);
+        setFormError('Invalid date range');
+      }
+    } else {
+      setCalculatedDays(null);
+    }
+  }, [startDate, endDate]);
+
   const fetchData = async () => {
     try {
-      const [employeesRes, requestsRes] = await Promise.all([
-        fetch('/api/employees'),
+      const supabase = createBrowserClient();
+
+      // Get current user
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        window.location.href = '/login';
+        return;
+      }
+
+      // Fetch profile and requests
+      const [profileRes, requestsRes] = await Promise.all([
+        fetch('/api/profiles'),
         fetch('/api/requests'),
       ]);
 
-      const employeesData = await employeesRes.json();
+      if (!profileRes.ok || !requestsRes.ok) {
+        throw new Error('Failed to fetch data');
+      }
+
+      const profilesData = await profileRes.json();
       const requestsData = await requestsRes.json();
 
-      setEmployees(employeesData);
+      // Find current user's profile
+      const userProfile = Array.isArray(profilesData)
+        ? profilesData.find((p: Profile) => p.id === user.id)
+        : profilesData;
+
+      setProfile(userProfile || null);
       setRequests(requestsData);
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -34,188 +100,317 @@ export default function DashboardPage() {
     }
   };
 
-  const handleStatusUpdate = async (requestId: number, status: LeaveStatus) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError('');
+
+    if (!startDate || !endDate) {
+      setFormError('Please select both start and end dates');
+      return;
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+      setFormError('End date must be after start date');
+      return;
+    }
+
+    if (!profile || calculatedDays === null) {
+      return;
+    }
+
+    // Client-side balance validation
+    if (!hasSufficientBalance(profile, calculatedDays)) {
+      setFormError(
+        `Insufficient vacation days. Available: ${calculateAvailableDays(profile)}, Requested: ${calculatedDays}`
+      );
+      return;
+    }
+
+    setSubmitting(true);
+
     try {
-      const response = await fetch(`/api/requests/${requestId}`, {
-        method: 'PATCH',
+      const response = await fetch('/api/requests', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ startDate, endDate }),
       });
 
-      if (response.ok) {
-        await fetchData(); // Refresh data
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to submit request');
       }
+
+      // Reset form and refresh data
+      setStartDate('');
+      setEndDate('');
+      setCalculatedDays(null);
+      await fetchData();
     } catch (error) {
-      console.error('Failed to update status:', error);
+      setFormError(error instanceof Error ? error.message : 'Failed to submit request');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-slate-500">Učitavanje...</div>
+        <div className="text-slate-500">Loading...</div>
       </div>
     );
   }
 
-  const activeEmployees = employees.filter((e) => e.isActive);
-  const pendingRequests = requests.filter((r) => r.status === LeaveStatus.REQUESTED);
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-slate-500">Profile not found</div>
+      </div>
+    );
+  }
 
-  const getInitialsBg = (name: string) => {
-    const colors = [
-      'bg-blue-100 text-blue-700',
-      'bg-indigo-100 text-indigo-700',
-      'bg-violet-100 text-violet-700',
-      'bg-sky-100 text-sky-700',
-    ];
-    return colors[name.length % colors.length];
-  };
+  const totalAvailable = calculateAvailableDays(profile);
+  const hasCarryOver = profile.daysCarryOver > 0;
+  const isSubmitDisabled =
+    !startDate ||
+    !endDate ||
+    calculatedDays === null ||
+    calculatedDays <= 0 ||
+    !hasSufficientBalance(profile, calculatedDays) ||
+    submitting;
+
+  // Get today's date for min date validation
+  const today = new Date().toISOString().split('T')[0];
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700">
       <header>
-        <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Kontrolna ploča</h1>
+        <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Dashboard</h1>
         <p className="text-slate-500 mt-2 font-medium">
-          Pregled statusa i aktivnih zahtjeva za cijeli tim.
+          Welcome back, {profile.fullName || profile.email}
         </p>
       </header>
 
-      {pendingRequests.length > 0 && (
-        <section className="bg-white rounded-[24px] border border-slate-200 shadow-lg shadow-slate-200/50 overflow-hidden border-l-8 border-l-orange-400">
-          <div className="p-8 border-b border-slate-100 flex items-center gap-3">
-            <Clock className="text-orange-500" size={24} strokeWidth={2} />
-            <h2 className="text-2xl font-bold text-slate-900">Zahtjevi na čekanju</h2>
-            <span className="ml-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-black">
-              {pendingRequests.length}
+      {/* Vacation Balance Section */}
+      <section className="bg-white rounded-[24px] border border-slate-200 shadow-lg shadow-slate-200/50 p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <CalendarDays className="text-[#0041F0]" size={24} strokeWidth={2} />
+          <h2 className="text-2xl font-bold text-slate-900">Vacation Balance</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Carry-over days */}
+          <div
+            className={`p-6 rounded-2xl flex flex-col items-center justify-center transition-all ${
+              hasCarryOver
+                ? 'bg-red-50 border-2 border-red-200'
+                : 'bg-slate-50 border-2 border-slate-100'
+            }`}
+          >
+            <span className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
+              Carry-Over Days
             </span>
-          </div>
-          <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
-            {pendingRequests.map((req) => {
-              const emp = employees.find((e) => e.id === req.employeeId);
-              return (
-                <div
-                  key={req.id}
-                  className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:bg-slate-50/50 transition-colors"
-                >
-                  <div className="flex items-center gap-5">
-                    <div
-                      className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-xl shadow-inner ${
-                        emp ? getInitialsBg(emp.name) : 'bg-slate-100'
-                      }`}
-                    >
-                      {emp?.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-900 text-xl tracking-tight">{emp?.name}</p>
-                      <p className="text-sm font-medium text-slate-500 flex items-center gap-2 mt-1">
-                        <CalendarDays size={16} className="text-slate-400" />
-                        {new Date(req.startDate).toLocaleDateString('hr-HR')} —{' '}
-                        {new Date(req.endDate).toLocaleDateString('hr-HR')}
-                        <span className="bg-blue-50 text-[#0041F0] px-2 py-0.5 rounded font-black text-xs">
-                          ({req.daysCount} dana)
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => handleStatusUpdate(req.id, LeaveStatus.APPROVED)}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3 bg-[#0041F0] text-white rounded-full text-sm font-black hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
-                    >
-                      <Check size={18} strokeWidth={3} /> Odobri
-                    </button>
-                    <button
-                      onClick={() => handleStatusUpdate(req.id, LeaveStatus.DENIED)}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3 border border-slate-200 text-slate-600 rounded-full text-sm font-black hover:bg-slate-50 transition-all"
-                    >
-                      <X size={18} strokeWidth={3} /> Odbij
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      <section className="space-y-8">
-        <div className="flex items-center gap-3">
-          <Users className="text-[#0041F0]" size={28} strokeWidth={2} />
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Zaposlenici</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {activeEmployees.map((emp) => (
-            <div
-              key={emp.id}
-              onClick={() => router.push(`/employee/${emp.id}`)}
-              className="bg-white p-8 rounded-[24px] border border-slate-200 shadow-lg shadow-slate-200/50 hover:translate-y-[-4px] transition-all cursor-pointer group relative"
-            >
-              <div className="absolute top-0 right-0 p-6">
-                <ChevronRight
-                  className="text-slate-200 group-hover:text-[#0041F0] transform group-hover:translate-x-1 transition-all"
-                  size={24}
-                  strokeWidth={3}
-                />
-              </div>
-
-              <div className="flex items-center gap-5 mb-10">
-                <div
-                  className={`w-16 h-16 rounded-3xl flex items-center justify-center font-bold text-2xl transition-all shadow-inner ${getInitialsBg(
-                    emp.name
-                  )}`}
-                >
-                  {emp.name.charAt(0)}
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900 group-hover:text-[#0041F0] transition-colors tracking-tight">
-                    {emp.name}
-                  </h3>
-                  <p className="text-sm font-medium text-slate-400 truncate max-w-[150px]">
-                    {emp.email}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <div
-                  className={`p-4 rounded-2xl flex flex-col items-center justify-center transition-all ${
-                    emp.daysCarryOver > 0 ? 'bg-red-50 border border-red-100' : 'bg-slate-50'
-                  }`}
-                >
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                    Stari dani
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className={`text-xl font-black ${
-                        emp.daysCarryOver > 0 ? 'text-red-700' : 'text-slate-400'
-                      }`}
-                    >
-                      {emp.daysCarryOver}
-                    </span>
-                    {emp.daysCarryOver > 0 && (
-                      <AlertCircle className="text-red-500" size={16} strokeWidth={2} />
-                    )}
-                  </div>
-                </div>
-                <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100 flex flex-col items-center justify-center">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#0041F0]/50 mb-1">
-                    Novi dani
-                  </span>
-                  <span className="text-xl font-black text-[#0041F0]">{emp.daysCurrentYear}</span>
-                </div>
-              </div>
-
-              <div className="pt-6 border-t border-slate-50 flex justify-between items-center">
-                <span className="text-sm font-bold text-slate-400">Dostupno ukupno</span>
-                <span className="text-xl font-black text-slate-900">
-                  {emp.daysCarryOver + emp.daysCurrentYear}{' '}
-                  <span className="text-sm font-medium text-slate-400">dana</span>
-                </span>
-              </div>
+            <div className="flex items-center gap-2">
+              <span
+                className={`text-3xl font-black ${
+                  hasCarryOver ? 'text-red-700' : 'text-slate-400'
+                }`}
+              >
+                {profile.daysCarryOver}
+              </span>
+              {hasCarryOver && <AlertCircle className="text-red-500" size={20} strokeWidth={2} />}
             </div>
-          ))}
+          </div>
+
+          {/* Current year days */}
+          <div className="p-6 rounded-2xl bg-blue-50 border-2 border-blue-200 flex flex-col items-center justify-center">
+            <span className="text-xs font-black uppercase tracking-widest text-[#0041F0]/50 mb-2">
+              Current Year Days
+            </span>
+            <span className="text-3xl font-black text-[#0041F0]">{profile.daysCurrentYear}</span>
+          </div>
+
+          {/* Total available */}
+          <div className="p-6 rounded-2xl bg-slate-900 border-2 border-slate-800 flex flex-col items-center justify-center">
+            <span className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
+              Total Available
+            </span>
+            <span className="text-3xl font-black text-white">{totalAvailable}</span>
+          </div>
         </div>
+
+        {/* Carry-over warning */}
+        {hasCarryOver && (
+          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+            <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={20} strokeWidth={2} />
+            <div>
+              <p className="text-sm font-bold text-red-900">Carry-over days expire June 30</p>
+              <p className="text-xs text-red-700 mt-1">
+                You have {profile.daysCarryOver} carry-over days from last year. Use them before
+                June 30 or they will be lost.
+              </p>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Leave Request Submission Form */}
+      <section className="bg-white rounded-[24px] border border-slate-200 shadow-lg shadow-slate-200/50 p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <Send className="text-[#0041F0]" size={24} strokeWidth={2} />
+          <h2 className="text-2xl font-bold text-slate-900">Request Time Off</h2>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Start Date */}
+            <div>
+              <label htmlFor="startDate" className="block text-sm font-bold text-slate-700 mb-2">
+                Start Date
+              </label>
+              <input
+                type="date"
+                id="startDate"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                min={today}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0041F0] focus:border-transparent"
+              />
+            </div>
+
+            {/* End Date */}
+            <div>
+              <label htmlFor="endDate" className="block text-sm font-bold text-slate-700 mb-2">
+                End Date
+              </label>
+              <input
+                type="date"
+                id="endDate"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                min={startDate || today}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0041F0] focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Business Days Preview */}
+          {calculatedDays !== null && calculatedDays > 0 && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <p className="text-sm font-bold text-blue-900">
+                Business days: <span className="text-xl">{calculatedDays}</span>
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                Excludes weekends and Croatian public holidays
+              </p>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {formError && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+              <AlertCircle
+                className="text-red-500 flex-shrink-0 mt-0.5"
+                size={20}
+                strokeWidth={2}
+              />
+              <p className="text-sm font-bold text-red-900">{formError}</p>
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isSubmitDisabled}
+            className={`w-full flex items-center justify-center gap-2 px-8 py-4 rounded-full text-sm font-black transition-all ${
+              isSubmitDisabled
+                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                : 'bg-[#0041F0] text-white hover:bg-blue-700 shadow-lg shadow-blue-200'
+            }`}
+          >
+            <Send size={18} strokeWidth={3} />
+            {submitting ? 'Submitting...' : 'Submit Request'}
+          </button>
+        </form>
+      </section>
+
+      {/* Request History */}
+      <section className="bg-white rounded-[24px] border border-slate-200 shadow-lg shadow-slate-200/50 overflow-hidden">
+        <div className="p-8 border-b border-slate-100 flex items-center gap-3">
+          <Clock className="text-[#0041F0]" size={24} strokeWidth={2} />
+          <h2 className="text-2xl font-bold text-slate-900">Request History</h2>
+        </div>
+
+        {requests.length === 0 ? (
+          <div className="p-8 text-center text-slate-500">
+            No leave requests yet. Submit your first request above!
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {requests
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+              .map((request) => (
+                <div key={request.id} className="p-6 hover:bg-slate-50/50 transition-colors">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-black ${
+                            request.status === 'REQUESTED'
+                              ? 'bg-orange-100 text-orange-700'
+                              : request.status === 'APPROVED'
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-red-100 text-red-700'
+                          }`}
+                        >
+                          {request.status}
+                        </span>
+                        <span className="text-sm font-medium text-slate-500">
+                          {new Date(request.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                        <CalendarDays size={16} className="text-slate-400" />
+                        {new Date(request.startDate).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}{' '}
+                        —{' '}
+                        {new Date(request.endDate).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </p>
+                      {request.rejectionReason && (
+                        <p className="text-sm text-red-700 mt-2 flex items-start gap-2">
+                          <XCircle size={16} className="flex-shrink-0 mt-0.5" />
+                          <span>
+                            <strong>Reason:</strong> {request.rejectionReason}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {request.status === 'APPROVED' && (
+                        <CheckCircle className="text-green-500" size={20} strokeWidth={2} />
+                      )}
+                      {request.status === 'DENIED' && (
+                        <XCircle className="text-red-500" size={20} strokeWidth={2} />
+                      )}
+                      <span className="text-lg font-black text-slate-900">
+                        {request.daysCount} days
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
       </section>
     </div>
   );
