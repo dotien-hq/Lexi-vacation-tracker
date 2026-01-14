@@ -17,9 +17,9 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user has a profile and is admin
+    // Check if user has a profile and is admin (lookup by email since Supabase auth ID != Prisma profile ID)
     const userProfile = await prisma.profile.findUnique({
-      where: { id: session.user.id },
+      where: { email: session.user.email },
     });
 
     if (!userProfile || !userProfile.isActive) {
@@ -55,9 +55,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user has a profile and is admin
+    // Check if user has a profile and is admin (lookup by email since Supabase auth ID != Prisma profile ID)
     const userProfile = await prisma.profile.findUnique({
-      where: { id: session.user.id },
+      where: { email: session.user.email },
     });
 
     if (!userProfile || !userProfile.isActive) {

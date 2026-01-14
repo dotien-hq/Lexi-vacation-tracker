@@ -19,9 +19,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user has a profile
+    // Check if user has a profile (lookup by email since Supabase auth ID != Prisma profile ID)
     const userProfile = await prisma.profile.findUnique({
-      where: { id: session.user.id },
+      where: { email: session.user.email },
     });
 
     if (!userProfile || !userProfile.isActive) {
@@ -176,7 +176,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // Handle date update (user only, only for REQUESTED status)
     if (isDateUpdate) {
       // Check if user owns this request
-      if (existingRequest.profileId !== session.user.id) {
+      if (existingRequest.profileId !== userProfile.id) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
 
@@ -266,9 +266,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user has a profile
+    // Check if user has a profile (lookup by email since Supabase auth ID != Prisma profile ID)
     const userProfile = await prisma.profile.findUnique({
-      where: { id: session.user.id },
+      where: { email: session.user.email },
     });
 
     if (!userProfile || !userProfile.isActive) {
@@ -291,7 +291,7 @@ export async function DELETE(
     }
 
     // Check permissions: users can delete their own REQUESTED, admins can delete any
-    const isOwner = existingRequest.profileId === session.user.id;
+    const isOwner = existingRequest.profileId === userProfile.id;
     const isAdmin = userProfile.role === Role.ADMIN;
 
     if (!isOwner && !isAdmin) {

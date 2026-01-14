@@ -19,9 +19,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user has a profile
+    // Check if user has a profile (lookup by email since Supabase auth ID != Prisma profile ID)
     const userProfile = await prisma.profile.findUnique({
-      where: { id: session.user.id },
+      where: { email: session.user.email },
     });
 
     if (!userProfile || !userProfile.isActive) {
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 
     // Users see only their own requests, admins see all
     if (userProfile.role === Role.USER) {
-      where.profileId = session.user.id;
+      where.profileId = userProfile.id;
     }
 
     // Apply status filter if provided
@@ -83,9 +83,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user has a profile
+    // Check if user has a profile (lookup by email since Supabase auth ID != Prisma profile ID)
     const userProfile = await prisma.profile.findUnique({
-      where: { id: session.user.id },
+      where: { email: session.user.email },
     });
 
     if (!userProfile || !userProfile.isActive) {
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     // Create leave request
     const leaveRequest = await prisma.leaveRequest.create({
       data: {
-        profileId: session.user.id,
+        profileId: userProfile.id,
         startDate: start,
         endDate: end,
         daysCount,

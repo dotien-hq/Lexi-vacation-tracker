@@ -16,9 +16,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user has a profile and is admin
+    // Check if user has a profile and is admin (lookup by email since Supabase auth ID != Prisma profile ID)
     const userProfile = await prisma.profile.findUnique({
-      where: { id: session.user.id },
+      where: { email: session.user.email },
     });
 
     if (!userProfile || !userProfile.isActive) {

@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './lib/prisma';
 
 interface CookieOptions {
   maxAge?: number;
@@ -16,8 +16,6 @@ interface CookieToSet {
   value: string;
   options: CookieOptions;
 }
-
-const prisma = new PrismaClient();
 
 export async function middleware(req: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -56,29 +54,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
-  // Query Profile table to verify user has active profile
-  const profile = await prisma.profile.findUnique({
-    where: { id: user.sub },
-    select: { role: true, isActive: true },
-  });
-
-  // Redirect users without profiles to /access-denied
-  if (!profile) {
-    return NextResponse.redirect(new URL('/access-denied', req.url));
-  }
-
-  // Redirect inactive users to /access-denied
-  if (!profile.isActive) {
-    return NextResponse.redirect(new URL('/access-denied', req.url));
-  }
-
-  // Check user role for /admin routes (ADMIN only)
-  if (req.nextUrl.pathname.startsWith('/admin')) {
-    // Redirect non-admin users from /admin routes to /dashboard
-    if (profile.role !== 'ADMIN') {
-      return NextResponse.redirect(new URL('/dashboard', req.url));
-    }
-  }
+  // Note: Profile and role checks are now handled in the page components
+  // using server-side data fetching, since Prisma doesn't work in edge middleware
 
   // IMPORTANT: Return the supabaseResponse to maintain session cookies
   return supabaseResponse;

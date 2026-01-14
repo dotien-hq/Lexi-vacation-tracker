@@ -86,9 +86,9 @@ export default function DashboardPage() {
       const profilesData = await profileRes.json();
       const requestsData = await requestsRes.json();
 
-      // Find current user's profile
+      // Find current user's profile by email (Supabase auth ID != Prisma profile ID)
       const userProfile = Array.isArray(profilesData)
-        ? profilesData.find((p: Profile) => p.id === user.id)
+        ? profilesData.find((p: Profile) => p.email === user.email)
         : profilesData;
 
       setProfile(userProfile || null);

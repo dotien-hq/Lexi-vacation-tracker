@@ -1,15 +1,17 @@
 # Lexi Vacation Tracker (Godišnji)
 
-Croatian vacation/leave management system built with Next.js 15, Prisma, and SQLite.
+Croatian vacation/leave management system built with Next.js 15, Prisma, and Supabase PostgreSQL.
 
 ## Architecture
 
 - **Framework:** Next.js 15.1.6 (App Router)
-- **Database:** SQLite (local file `prisma/dev.db`)
+- **Database:** PostgreSQL (Supabase hosted)
 - **ORM:** Prisma 6.1.0
+- **Auth:** Supabase Auth (magic link / passwordless)
 - **API:** Next.js Route Handlers
 - **Frontend:** React 19.0.0 with TypeScript 5.8.2
 - **Styling:** Tailwind CSS 3.4.19
+- **Email:** SendGrid for transactional emails
 
 ## Setup Instructions
 
@@ -19,24 +21,44 @@ Croatian vacation/leave management system built with Next.js 15, Prisma, and SQL
 npm install
 ```
 
-### 2. Initialize Database
+### 2. Configure Environment
 
-Generate Prisma client and create the database:
+Copy the example environment file and fill in your credentials:
+
+```bash
+cp .env.example .env.local
+```
+
+Required environment variables:
+
+- `DATABASE_URL` - Supabase PostgreSQL connection (Session Pooler recommended for IPv4)
+- `DIRECT_URL` - Direct PostgreSQL connection for migrations
+- `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
+- `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key (server-side only)
+- `SENDGRID_API_KEY` - SendGrid API key for emails
+- `SENDGRID_FROM_EMAIL` - Verified sender email address
+- `ADMIN_EMAIL` - Email for initial admin account
+- `ADMIN_NAME` - Name for initial admin account
+
+### 3. Initialize Database
+
+Generate Prisma client and push schema to database:
 
 ```bash
 npx prisma generate
-npx prisma migrate dev --name init
+npx prisma db push
 ```
 
-### 3. Seed Database
+### 4. Seed Database
 
-Populate with initial 6 employees:
+Create the initial admin user:
 
 ```bash
 npm run prisma:seed
 ```
 
-### 4. Run Development Server
+### 5. Run Development Server
 
 ```bash
 npm run dev
@@ -46,23 +68,25 @@ The app will be available at `http://localhost:3000`
 
 ## Database Schema
 
-### Employee
+### Profile
 
-- `id`: Auto-increment primary key
-- `name`: Employee full name
+- `id`: UUID primary key
 - `email`: Unique email address
+- `fullName`: User's full name
+- `role`: USER | ADMIN
 - `daysCarryOver`: Days from previous year (expire June 30)
-- `daysCurrentYear`: Current year allocation
+- `daysCurrentYear`: Current year allocation (default: 20)
 - `isActive`: Soft delete flag
 
 ### LeaveRequest
 
-- `id`: Auto-increment primary key
-- `employeeId`: Foreign key to Employee
+- `id`: CUID primary key
+- `profileId`: Foreign key to Profile
 - `startDate`: Leave start date
 - `endDate`: Leave end date
 - `daysCount`: Business days (auto-calculated)
-- `status`: "REQUESTED" | "APPROVED" | "DENIED"
+- `status`: REQUESTED | APPROVED | DENIED
+- `rejectionReason`: Optional reason for denial
 - `createdAt`: Timestamp
 
 ## Business Logic
@@ -141,6 +165,9 @@ npm start
 # Generate Prisma Client
 npm run prisma:generate
 
+# Push schema changes to database
+npx prisma db push
+
 # Create migration
 npm run prisma:migrate
 
@@ -201,15 +228,20 @@ The project uses Husky and lint-staged to automatically:
 - **Formatting:** Prettier with consistent configuration
 - **Type Safety:** TypeScript strict mode
 
-## Database Location
+## Database Connection
 
-SQLite database file: `prisma/dev.db`
+This project uses Supabase PostgreSQL with the Session Pooler for IPv4 compatibility.
+
+Connection string format:
+
+```
+postgresql://postgres.[project-ref]:[password]@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
+```
 
 To reset the database:
 
 ```bash
-rm prisma/dev.db
-npx prisma migrate dev --name init
+npx prisma db push --force-reset
 npm run prisma:seed
 ```
 
@@ -219,6 +251,7 @@ npm run prisma:seed
 /
 ├── app/                    # Next.js App Router
 │   ├── api/               # API Routes
+│   ├── auth/              # Authentication pages
 │   ├── dashboard/         # Dashboard page
 │   ├── calendar/          # Calendar view
 │   ├── employee/[id]/     # Employee detail page
@@ -227,7 +260,10 @@ npm run prisma:seed
 ├── components/            # Reusable UI components
 ├── lib/                   # Utility functions
 │   ├── prisma.ts          # Prisma client
+│   ├── supabase/          # Supabase client utilities
 │   └── holidayCalculator.ts # Business day calculations
 ├── prisma/                # Database schema and migrations
+│   ├── schema.prisma      # PostgreSQL schema
+│   └── seed.ts            # Admin user seed script
 └── types.ts               # TypeScript type definitions
 ```
