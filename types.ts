@@ -1,29 +1,45 @@
-export enum LeaveStatus {
+// Enums matching Prisma schema
+export enum Role {
+  USER = 'USER',
+  ADMIN = 'ADMIN',
+}
+
+export enum RequestStatus {
   REQUESTED = 'REQUESTED',
   APPROVED = 'APPROVED',
   DENIED = 'DENIED',
 }
 
-export interface Employee {
-  id: number;
-  name: string;
+// Profile model (replaces Employee)
+export interface Profile {
+  id: string;
   email: string;
+  fullName: string | null;
+  role: Role;
   daysCarryOver: number;
   daysCurrentYear: number;
   isActive: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
+// LeaveRequest model (updated to use profileId)
 export interface LeaveRequest {
-  id: number;
-  employeeId: number;
-  startDate: string;
-  endDate: string;
+  id: string;
+  profileId: string;
+  startDate: Date | string;
+  endDate: Date | string;
   daysCount: number;
-  status: LeaveStatus;
-  createdAt: string;
+  status: RequestStatus;
+  rejectionReason: string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
-export interface AppData {
-  employees: Employee[];
-  requests: LeaveRequest[];
-}
+// Legacy type alias for backward compatibility (deprecated)
+/** @deprecated Use Profile instead */
+export type Employee = Profile;
+
+// Legacy enum alias for backward compatibility (deprecated)
+/** @deprecated Use RequestStatus instead */
+export const LeaveStatus = RequestStatus;
