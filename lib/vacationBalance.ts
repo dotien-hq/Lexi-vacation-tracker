@@ -1,30 +1,48 @@
-import { Profile } from '@prisma/client';
+/**
+ * Vacation Balance Utility Functions
+ *
+ * Handles vacation day calculations, deductions, and refunds.
+ * Implements carry-over first deduction logic per requirements 12.1-12.5.
+ */
+
+interface VacationBalance {
+  daysCarryOver: number;
+  daysCurrentYear: number;
+}
 
 /**
  * Calculate total available vacation days
+ *
+ * @param balance - Profile with vacation day balances
+ * @returns Total available days (carry-over + current year)
  */
-export function calculateAvailableDays(profile: Profile): number {
-  return profile.daysCarryOver + profile.daysCurrentYear;
+export function calculateAvailableDays(balance: VacationBalance): number {
+  return balance.daysCarryOver + balance.daysCurrentYear;
 }
 
 /**
- * Check if profile has sufficient balance for requested days
+ * Check if user has sufficient balance for requested days
+ *
+ * @param balance - Profile with vacation day balances
+ * @param requestedDays - Number of days requested
+ * @returns True if sufficient balance exists
  */
-export function hasSufficientBalance(profile: Profile, requestedDays: number): boolean {
-  return calculateAvailableDays(profile) >= requestedDays;
+export function hasSufficientBalance(balance: VacationBalance, requestedDays: number): boolean {
+  return calculateAvailableDays(balance) >= requestedDays;
 }
 
 /**
- * Deduct days from profile balance (carry-over first, then current year)
- * Returns updated balance values
+ * Deduct vacation days from balance
+ * Implements carry-over first deduction logic (Requirements 12.1, 12.2)
+ *
+ * @param balance - Profile with vacation day balances
+ * @param daysToDeduct - Number of days to deduct
+ * @returns Updated balance with days deducted
  */
-export function deductDays(
-  profile: Profile,
-  daysToDeduct: number
-): { daysCarryOver: number; daysCurrentYear: number } {
+export function deductDays(balance: VacationBalance, daysToDeduct: number): VacationBalance {
   let remaining = daysToDeduct;
-  let carryOver = profile.daysCarryOver;
-  let currentYear = profile.daysCurrentYear;
+  let carryOver = balance.daysCarryOver;
+  let currentYear = balance.daysCurrentYear;
 
   // Deduct from carry-over first
   if (carryOver >= remaining) {
@@ -45,15 +63,16 @@ export function deductDays(
 }
 
 /**
- * Refund days to profile balance (always to current year)
- * Returns updated balance values
+ * Refund vacation days to balance
+ * Always refunds to current year (Requirement 12.5)
+ *
+ * @param balance - Profile with vacation day balances
+ * @param daysToRefund - Number of days to refund
+ * @returns Updated balance with days refunded
  */
-export function refundDays(
-  profile: Profile,
-  daysToRefund: number
-): { daysCarryOver: number; daysCurrentYear: number } {
+export function refundDays(balance: VacationBalance, daysToRefund: number): VacationBalance {
   return {
-    daysCarryOver: profile.daysCarryOver,
-    daysCurrentYear: profile.daysCurrentYear + daysToRefund,
+    daysCarryOver: balance.daysCarryOver,
+    daysCurrentYear: balance.daysCurrentYear + daysToRefund,
   };
 }
