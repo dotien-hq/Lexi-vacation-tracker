@@ -3,27 +3,47 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-model Employee {
-  id              Int            @id @default(autoincrement())
-  name            String
+enum Role {
+  USER
+  ADMIN
+}
+
+enum RequestStatus {
+  REQUESTED
+  APPROVED
+  DENIED
+}
+
+model Profile {
+  id              String         @id @default(uuid())
   email           String         @unique
-  daysCarryOver   Int            // Old days (Expiring June 30)
-  daysCurrentYear Int            // New days
-  isActive        Boolean        @default(true) // Soft delete
+  fullName        String?
+  role            Role           @default(USER)
+  daysCarryOver   Int            @default(0)
+  daysCurrentYear Int            @default(20)
+  isActive        Boolean        @default(true)
   requests        LeaveRequest[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 
 model LeaveRequest {
-  id         Int      @id @default(autoincrement())
-  employeeId Int
-  employee   Employee @relation(fields: [employeeId], references: [id])
-  startDate  DateTime
-  endDate    DateTime
-  daysCount  Int
-  status     String   // "REQUESTED", "APPROVED", "DENIED"
-  createdAt  DateTime @default(now())
+  id              String        @id @default(cuid())
+  profileId       String
+  profile         Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  startDate       DateTime
+  endDate         DateTime
+  daysCount       Int
+  status          RequestStatus @default(REQUESTED)
+  rejectionReason String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([profileId])
+  @@index([status])
 }
