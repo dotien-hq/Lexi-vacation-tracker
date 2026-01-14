@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { Role, RequestStatus } from '@prisma/client';
 import { calculateBusinessDays } from '@/lib/holidayCalculator';
 import { hasSufficientBalance } from '@/lib/vacationBalance';
+import { sendRequestNotificationEmail } from '@/lib/email';
 
 // GET /api/requests - List leave requests (role-based filtering)
 export async function GET(request: NextRequest) {
@@ -156,9 +157,33 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // TODO: Send notification email to all admins (will be implemented in task 13)
-    // eslint-disable-next-line no-console
-    console.log(`Notification email should be sent to admins for request: ${leaveRequest.id}`);
+    // Send notification email to all admins
+    try {
+      const admins = await prisma.profile.findMany({
+        where: {
+          role: Role.ADMIN,
+          isActive: true,
+        },
+        select: {
+          email: true,
+        },
+      });
+
+      const adminEmails = admins.map((admin) => admin.email);
+
+      if (adminEmails.length > 0) {
+        await sendRequestNotificationEmail(
+          adminEmails,
+          userProfile.fullName || userProfile.email,
+          start,
+          end,
+          daysCount
+        );
+      }
+    } catch (emailError) {
+      // Log error but don't fail the request
+      console.error('Failed to send notification email to admins:', emailError);
+    }
 
     return NextResponse.json(leaveRequest, { status: 201 });
   } catch (error) {

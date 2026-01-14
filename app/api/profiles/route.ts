@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@prisma/client';
+import { sendInvitationEmail } from '@/lib/email';
 
 // GET /api/profiles - List all profiles (admin only)
 export async function GET() {
@@ -103,15 +104,26 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // TODO: Send invitation email via SendGrid (will be implemented in task 12)
-    // For now, we'll just log that an email should be sent
-    // eslint-disable-next-line no-console
-    console.log(`Invitation email should be sent to: ${email}`);
+    // Send invitation email via SendGrid
+    // Handle email errors gracefully - log but don't fail the request
+    let inviteSent = false;
+    try {
+      const emailResult = await sendInvitationEmail(email, fullName || email);
+      inviteSent = emailResult.success;
+
+      if (!emailResult.success) {
+        console.error(`Failed to send invitation email to ${email}:`, emailResult.error);
+      } else {
+        console.log(`Invitation email sent successfully to: ${email}`);
+      }
+    } catch (error) {
+      console.error(`Error sending invitation email to ${email}:`, error);
+    }
 
     return NextResponse.json(
       {
         profile,
-        inviteSent: false, // Will be true once email integration is complete
+        inviteSent,
       },
       { status: 201 }
     );

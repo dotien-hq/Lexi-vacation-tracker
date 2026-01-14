@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { Role, RequestStatus } from '@prisma/client';
 import { calculateBusinessDays } from '@/lib/holidayCalculator';
 import { hasSufficientBalance, deductDays, refundDays } from '@/lib/vacationBalance';
+import { sendApprovalEmail, sendDenialEmail } from '@/lib/email';
 
 // PATCH /api/requests/[id] - Update leave request (status or dates)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -117,9 +118,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           }),
         ]);
 
-        // TODO: Send approval email (will be implemented in task 13)
-        // eslint-disable-next-line no-console
-        console.log(`Approval email should be sent for request: ${id}`);
+        // Send approval email
+        try {
+          await sendApprovalEmail(
+            existingRequest.profile.email,
+            existingRequest.profile.fullName || existingRequest.profile.email,
+            existingRequest.startDate,
+            existingRequest.endDate,
+            existingRequest.daysCount
+          );
+        } catch (emailError) {
+          // Log error but don't fail the request
+          console.error('Failed to send approval email:', emailError);
+        }
 
         return NextResponse.json(updatedRequest);
       }
@@ -143,9 +154,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           },
         });
 
-        // TODO: Send denial email with reason (will be implemented in task 13)
-        // eslint-disable-next-line no-console
-        console.log(`Denial email should be sent for request: ${id}`);
+        // Send denial email with reason
+        try {
+          await sendDenialEmail(
+            existingRequest.profile.email,
+            existingRequest.profile.fullName || existingRequest.profile.email,
+            existingRequest.startDate,
+            existingRequest.endDate,
+            existingRequest.daysCount,
+            rejectionReason
+          );
+        } catch (emailError) {
+          // Log error but don't fail the request
+          console.error('Failed to send denial email:', emailError);
+        }
 
         return NextResponse.json(updatedRequest);
       }
