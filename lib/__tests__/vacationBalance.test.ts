@@ -5,7 +5,7 @@ import {
   deductDays,
   refundDays,
 } from '../vacationBalance';
-import { Profile, Role } from '@prisma/client';
+import { Profile, Role, UserStatus } from '@prisma/client';
 
 // Helper to create a mock profile
 function createMockProfile(daysCarryOver: number, daysCurrentYear: number): Profile {
@@ -13,6 +13,11 @@ function createMockProfile(daysCarryOver: number, daysCurrentYear: number): Prof
     id: 'test-id',
     email: 'test@example.com',
     fullName: 'Test User',
+    authUserId: null,
+    status: UserStatus.ACTIVE,
+    invitationToken: null,
+    invitationExpiresAt: null,
+    invitedAt: null,
     role: Role.USER,
     daysCarryOver,
     daysCurrentYear,

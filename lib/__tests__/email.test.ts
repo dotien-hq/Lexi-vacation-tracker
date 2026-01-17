@@ -429,7 +429,7 @@ describe('email service', () => {
         'Admin User'
       );
 
-      const call = mockSend.mock.calls[0][0];
+      const call = mockSend.mock.calls[0][0] as { html?: string };
       expect(call.html).toContain('/auth/accept?token=abc123def456');
     });
 
