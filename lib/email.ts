@@ -355,3 +355,115 @@ export async function sendDenialEmail(
     };
   }
 }
+
+/**
+ * Send invitation email with secure token link
+ * @param email User's email address
+ * @param fullName User's full name
+ * @param token Invitation token
+ * @param adminName Name of admin who sent invitation
+ * @returns Promise with success status
+ */
+export async function sendInvitationEmailWithToken(
+  email: string,
+  fullName: string,
+  token: string,
+  adminName: string
+): Promise<EmailResult> {
+  if (!isEmailConfigured()) {
+    return {
+      success: false,
+      error: 'Email service not configured',
+    };
+  }
+
+  try {
+    const inviteUrl = `${appUrl}/auth/accept?token=${token}`;
+
+    const msg = {
+      to: email,
+      from: fromEmail,
+      subject: "You're invited to Lexi Vacation Tracker",
+      text: `Hello ${fullName},\n\n${adminName} has invited you to join Lexi Vacation Tracker.\n\nClick the link below to accept your invitation and set your password:\n${inviteUrl}\n\nThis invitation will expire in 7 days.\n\nBest regards,\nLexi Vacation Tracker Team`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #0041F0;">You're Invited!</h2>
+          <p>Hello <strong>${fullName}</strong>,</p>
+          <p><strong>${adminName}</strong> has invited you to join Lexi Vacation Tracker.</p>
+          <p>Click the button below to accept your invitation and set your password:</p>
+          <p style="margin: 30px 0;">
+            <a href="${inviteUrl}" style="display: inline-block; padding: 12px 24px; background-color: #0041F0; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Accept Invitation</a>
+          </p>
+          <p style="color: #666; font-size: 14px;">This invitation will expire in 7 days.</p>
+          <p style="color: #666; font-size: 14px;">If the button doesn't work, copy and paste this link:<br/>
+          <a href="${inviteUrl}" style="color: #0041F0;">${inviteUrl}</a></p>
+          <p>Best regards,<br/>Lexi Vacation Tracker Team</p>
+        </div>
+      `,
+    };
+
+    await sgMail.send(msg);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send invitation email:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * Send re-invitation email when admin resends invite
+ * @param email User's email address
+ * @param fullName User's full name
+ * @param token New invitation token
+ * @returns Promise with success status
+ */
+export async function sendReinviteEmail(
+  email: string,
+  fullName: string,
+  token: string
+): Promise<EmailResult> {
+  if (!isEmailConfigured()) {
+    return {
+      success: false,
+      error: 'Email service not configured',
+    };
+  }
+
+  try {
+    const inviteUrl = `${appUrl}/auth/accept?token=${token}`;
+
+    const msg = {
+      to: email,
+      from: fromEmail,
+      subject: 'Reminder: Complete your Lexi Vacation Tracker setup',
+      text: `Hello ${fullName},\n\nThis is a reminder to complete your Lexi Vacation Tracker setup.\n\nClick the link below to accept your invitation and set your password:\n${inviteUrl}\n\nThis invitation will expire in 7 days.\n\nBest regards,\nLexi Vacation Tracker Team`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #0041F0;">Complete Your Setup</h2>
+          <p>Hello <strong>${fullName}</strong>,</p>
+          <p>This is a reminder to complete your Lexi Vacation Tracker setup.</p>
+          <p>Click the button below to accept your invitation and set your password:</p>
+          <p style="margin: 30px 0;">
+            <a href="${inviteUrl}" style="display: inline-block; padding: 12px 24px; background-color: #0041F0; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Complete Setup</a>
+          </p>
+          <p style="color: #666; font-size: 14px;">This invitation will expire in 7 days.</p>
+          <p style="color: #666; font-size: 14px;">If the button doesn't work, copy and paste this link:<br/>
+          <a href="${inviteUrl}" style="color: #0041F0;">${inviteUrl}</a></p>
+          <p>Best regards,<br/>Lexi Vacation Tracker Team</p>
+        </div>
+      `,
+    };
+
+    await sgMail.send(msg);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send re-invite email:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
