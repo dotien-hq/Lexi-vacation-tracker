@@ -124,14 +124,50 @@ Excludes:
   - **Dec 25:** Christmas Day
   - **Dec 26:** St. Stephen's Day
 
+## Invitation Flow
+
+### Admin Workflow
+
+1. Admin creates employee profile with vacation days allocation
+2. System generates secure invitation token (32 chars, 7-day expiry)
+3. Invitation email sent via SendGrid with acceptance link
+4. Profile status: PENDING (cannot access system yet)
+
+### Employee Activation
+
+1. Employee receives email with invitation link
+2. Clicks link → lands on `/auth/accept?token=xxx`
+3. Sets password (min 8 characters)
+4. System creates Supabase Auth user
+5. Profile linked to Auth user (authUserId)
+6. Profile status: ACTIVE → access granted
+
+### Re-invitation
+
+- Admin can resend invitation for PENDING users
+- Generates new token, invalidates previous
+- Cannot re-invite ACTIVE users
+
+### Security
+
+- Tokens: SHA-256 hashed, crypto-secure random
+- Expiry: 7 days (configurable)
+- Timing-safe token comparison
+- Auth guard enforces ACTIVE status on all protected routes
+
 ## API Routes
+
+### Authentication
+
+- `POST /api/auth/complete-invite` - Complete invitation and set password
 
 ### Employees
 
 - `GET /api/employees` - List all employees
-- `POST /api/employees` - Create employee
+- `POST /api/employees` - Create employee and send invitation
 - `GET /api/employees/[id]` - Get employee with requests
 - `PATCH /api/employees/[id]` - Update employee
+- `POST /api/employees/[id]/reinvite` - Resend invitation email
 
 ### Leave Requests
 
