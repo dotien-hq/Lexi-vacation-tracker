@@ -26,16 +26,33 @@ enum RequestStatus {
 }
 
 model Profile {
-  id              String         @id @default(uuid())
-  email           String         @unique
-  fullName        String?
-  role            Role           @default(USER)
-  daysCarryOver   Int            @default(0)
-  daysCurrentYear Int            @default(20)
-  isActive        Boolean        @default(true)
-  requests        LeaveRequest[]
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id       String  @id @default(uuid())
+  email    String  @unique
+  fullName String?
+
+  // Link to Supabase Auth (Nullable until activation)
+  authUserId String? @unique
+
+  // Status Management
+  status UserStatus @default(PENDING)
+
+  // Invitation Logic
+  invitationToken     String?   @unique
+  invitationExpiresAt DateTime?
+  invitedAt           DateTime? @default(now())
+
+  // Business Logic
+  role            Role @default(USER)
+  daysCarryOver   Int  @default(0)
+  daysCurrentYear Int  @default(20)
+
+  // Legacy field (will migrate to status)
+  isActive Boolean @default(true)
+
+  // Metadata
+  requests  LeaveRequest[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 }
 
 model LeaveRequest {
