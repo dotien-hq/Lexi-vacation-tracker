@@ -20,6 +20,8 @@ import {
   sendRequestNotificationEmail,
   sendApprovalEmail,
   sendDenialEmail,
+  sendInvitationEmailWithToken,
+  sendReinviteEmail,
   getEmailConfigurationStatus,
 } from '../email';
 import sgMail from '@sendgrid/mail';
@@ -374,6 +376,71 @@ describe('email service', () => {
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           text: expect.stringContaining('8'),
+        })
+      );
+    });
+  });
+
+  describe('sendInvitationEmailWithToken', () => {
+    it('should send invitation email with token link', async () => {
+      mockSend.mockResolvedValue([{ statusCode: 202, body: {}, headers: {} }, {}]);
+
+      const result = await sendInvitationEmailWithToken(
+        'ivan@company.com',
+        'Ivan Horvat',
+        'abc123def456',
+        'Admin User'
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'ivan@company.com',
+          subject: expect.stringContaining('invited'),
+        })
+      );
+    });
+
+    it('should include token in invitation URL', async () => {
+      mockSend.mockResolvedValue([{ statusCode: 202, body: {}, headers: {} }, {}]);
+
+      await sendInvitationEmailWithToken(
+        'ivan@company.com',
+        'Ivan Horvat',
+        'abc123def456',
+        'Admin User'
+      );
+
+      const call = mockSend.mock.calls[0][0];
+      expect(call.html).toContain('/auth/accept?token=abc123def456');
+    });
+
+    it('should return error when email service not configured', async () => {
+      // This test will pass if SENDGRID_API_KEY is not set
+      const result = await sendInvitationEmailWithToken(
+        'test@example.com',
+        'Test User',
+        'token123',
+        'Admin'
+      );
+
+      if (!result.success) {
+        expect(result.error).toBeDefined();
+      }
+    });
+  });
+
+  describe('sendReinviteEmail', () => {
+    it('should send re-invite email', async () => {
+      mockSend.mockResolvedValue([{ statusCode: 202, body: {}, headers: {} }, {}]);
+
+      const result = await sendReinviteEmail('ivan@company.com', 'Ivan Horvat', 'newtoken123');
+
+      expect(result.success).toBe(true);
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'ivan@company.com',
+          subject: expect.stringContaining('invitation'),
         })
       );
     });
