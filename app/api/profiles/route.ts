@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@prisma/client';
-import { sendInvitationEmail } from '@/lib/email';
+import { sendInvitationEmailWithToken } from '@/lib/email';
 import { getAuthenticatedProfile } from '@/lib/auth';
+import { generateInvitationToken, hashToken, generateInvitationExpiry } from '@/lib/tokens';
 
 // GET /api/profiles - List all profiles (admin only)
 export async function GET() {
@@ -64,42 +65,56 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingProfile) {
-      return NextResponse.json({ error: 'Email already exists' }, { status: 409 });
+      return NextResponse.json(
+        { error: 'A profile with this email already exists' },
+        { status: 400 }
+      );
     }
 
-    // Create profile
+    // Generate invitation token
+    const invitationToken = generateInvitationToken();
+    const tokenHash = hashToken(invitationToken);
+    const expiresAt = generateInvitationExpiry();
+
+    // Create profile with PENDING status
     const profile = await prisma.profile.create({
       data: {
-        id: crypto.randomUUID(), // Generate UUID for new profile
         email,
         fullName: fullName || null,
         role: Role.USER,
-        daysCarryOver: daysCarryOver ?? 0,
         daysCurrentYear: daysCurrentYear ?? 20,
-        isActive: true,
+        daysCarryOver: daysCarryOver ?? 0,
+        status: 'PENDING',
+        invitationToken: tokenHash,
+        invitationExpiresAt: expiresAt,
+        invitedAt: new Date(),
+        isActive: false, // Legacy field
       },
     });
 
-    // Send invitation email via SendGrid
-    // Handle email errors gracefully - log but don't fail the request
-    let inviteSent = false;
-    try {
-      const emailResult = await sendInvitationEmail(email, fullName || email);
-      inviteSent = emailResult.success;
+    // Send invitation email
+    const emailResult = await sendInvitationEmailWithToken(
+      email,
+      fullName || email,
+      invitationToken, // Send unhashed token in email
+      userProfile.fullName || 'Admin'
+    );
 
-      if (!emailResult.success) {
-        console.error(`Failed to send invitation email to ${email}:`, emailResult.error);
-      } else {
-        console.log(`Invitation email sent successfully to: ${email}`);
-      }
-    } catch (error) {
-      console.error(`Error sending invitation email to ${email}:`, error);
+    if (!emailResult.success) {
+      console.error('Failed to send invitation email:', emailResult.error);
+      // Profile created but email failed - admin can resend
     }
 
     return NextResponse.json(
       {
-        profile,
-        inviteSent,
+        profile: {
+          id: profile.id,
+          email: profile.email,
+          fullName: profile.fullName,
+          status: profile.status,
+          invitedAt: profile.invitedAt,
+        },
+        emailSent: emailResult.success,
       },
       { status: 201 }
     );

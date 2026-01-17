@@ -99,7 +99,7 @@ describe('POST /api/profiles', () => {
     const response = await POST(request);
     const data = await response.json();
 
-    expect(response.status).toBe(409);
+    expect(response.status).toBe(400);
     expect(data.error).toContain('already exists');
   });
 });
