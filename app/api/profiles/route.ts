@@ -19,12 +19,32 @@ export async function GET() {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    // Fetch all profiles
+    // Fetch all profiles with status and invitation info
     const profiles = await prisma.profile.findMany({
-      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        status: true,
+        daysCarryOver: true,
+        daysCurrentYear: true,
+        invitedAt: true,
+        invitationExpiresAt: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            requests: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
 
-    return NextResponse.json(profiles);
+    return NextResponse.json({ profiles });
   } catch (error) {
     console.error('Error fetching profiles:', error);
     return NextResponse.json({ error: 'Failed to fetch profiles' }, { status: 500 });
