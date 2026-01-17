@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from '../route';
 import { prisma } from '@/lib/prisma';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 
 // Mock dependencies
 vi.mock('@/lib/prisma', () => ({
@@ -13,8 +12,12 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
-vi.mock('@supabase/auth-helpers-nextjs', () => ({
-  createRouteHandlerClient: vi.fn(),
+vi.mock('@supabase/ssr', () => ({
+  createServerClient: vi.fn(),
+}));
+
+vi.mock('@/lib/supabase', () => ({
+  createServerSupabaseClient: vi.fn(),
 }));
 
 describe('POST /api/auth/complete-invite', () => {
@@ -25,14 +28,14 @@ describe('POST /api/auth/complete-invite', () => {
   it('should reject request with missing token', async () => {
     const request = new Request('http://localhost/api/auth/complete-invite', {
       method: 'POST',
-      body: JSON.stringify({ password: 'test123' }),
+      body: JSON.stringify({ password: 'test12345' }),
     });
 
     const response = await POST(request);
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toContain('token');
+    expect(data.error).toContain('Token');
   });
 
   it('should reject request with missing password', async () => {
@@ -45,7 +48,7 @@ describe('POST /api/auth/complete-invite', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toContain('password');
+    expect(data.error).toContain('Password');
   });
 
   it('should reject invalid token', async () => {
@@ -53,7 +56,7 @@ describe('POST /api/auth/complete-invite', () => {
 
     const request = new Request('http://localhost/api/auth/complete-invite', {
       method: 'POST',
-      body: JSON.stringify({ token: 'invalid-token', password: 'test123' }),
+      body: JSON.stringify({ token: 'invalid-token', password: 'test12345' }),
     });
 
     const response = await POST(request);
@@ -86,7 +89,7 @@ describe('POST /api/auth/complete-invite', () => {
 
     const request = new Request('http://localhost/api/auth/complete-invite', {
       method: 'POST',
-      body: JSON.stringify({ token: 'valid-token', password: 'test123' }),
+      body: JSON.stringify({ token: 'valid-token', password: 'test12345' }),
     });
 
     const response = await POST(request);
