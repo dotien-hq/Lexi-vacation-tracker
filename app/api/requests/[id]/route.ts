@@ -1,31 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase';
 import { prisma } from '@/lib/prisma';
 import { Role, RequestStatus } from '@prisma/client';
 import { calculateBusinessDays } from '@/lib/holidayCalculator';
 import { hasSufficientBalance, deductDays, refundDays } from '@/lib/vacationBalance';
 import { sendApprovalEmail, sendDenialEmail } from '@/lib/email';
+import { getAuthenticatedProfile } from '@/lib/auth';
 
 // PATCH /api/requests/[id] - Update leave request (status or dates)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Check authentication
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const userProfile = await getAuthenticatedProfile();
 
-    if (!session) {
+    if (!userProfile) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user has a profile (lookup by email since Supabase auth ID != Prisma profile ID)
-    const userProfile = await prisma.profile.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!userProfile || !userProfile.isActive) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     // Get request ID from params
@@ -257,22 +245,10 @@ export async function DELETE(
 ) {
   try {
     // Check authentication
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const userProfile = await getAuthenticatedProfile();
 
-    if (!session) {
+    if (!userProfile) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user has a profile (lookup by email since Supabase auth ID != Prisma profile ID)
-    const userProfile = await prisma.profile.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!userProfile || !userProfile.isActive) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     // Get request ID from params

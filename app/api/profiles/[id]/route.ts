@@ -1,28 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@prisma/client';
+import { getAuthenticatedProfile } from '@/lib/auth';
 
 // PATCH /api/profiles/[id] - Update profile (admin only)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Check authentication
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const userProfile = await getAuthenticatedProfile();
 
-    if (!session) {
+    if (!userProfile) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user has a profile and is admin (lookup by email since Supabase auth ID != Prisma profile ID)
-    const userProfile = await prisma.profile.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!userProfile || !userProfile.isActive) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     if (userProfile.role !== Role.ADMIN) {

@@ -2,9 +2,7 @@ import sgMail from '@sendgrid/mail';
 
 // Initialize SendGrid with API key
 const apiKey = process.env.SENDGRID_API_KEY;
-if (!apiKey) {
-  console.error('SENDGRID_API_KEY is not configured');
-} else {
+if (apiKey) {
   sgMail.setApiKey(apiKey);
 }
 
@@ -17,12 +15,61 @@ interface EmailResult {
 }
 
 /**
+ * Check if email service is properly configured
+ * @returns true if configured, false otherwise
+ */
+function isEmailConfigured(): boolean {
+  return !!apiKey;
+}
+
+/**
+ * Get email configuration status (exported for use in tests and API routes)
+ * @returns Object with configuration status
+ */
+export function getEmailConfigurationStatus(): {
+  isConfigured: boolean;
+  hasApiKey: boolean;
+  hasFromEmail: boolean;
+  hasAppUrl: boolean;
+} {
+  return {
+    isConfigured: isEmailConfigured(),
+    hasApiKey: !!apiKey,
+    hasFromEmail: !!process.env.SENDGRID_FROM_EMAIL,
+    hasAppUrl: !!process.env.NEXT_PUBLIC_APP_URL,
+  };
+}
+
+/**
+ * Log configuration warning on startup
+ */
+function logEmailConfigurationStatus(): void {
+  if (!apiKey) {
+    console.warn('⚠️  SENDGRID_API_KEY is not configured. Email notifications will be disabled.');
+  }
+  if (!process.env.SENDGRID_FROM_EMAIL) {
+    console.warn('⚠️  SENDGRID_FROM_EMAIL is not configured. Using default: noreply@example.com');
+  }
+}
+
+// Log configuration status on module load
+logEmailConfigurationStatus();
+
+/**
  * Send invitation email to a newly created user
  * @param email User's email address
  * @param fullName User's full name
  * @returns Promise with success status
  */
 export async function sendInvitationEmail(email: string, fullName: string): Promise<EmailResult> {
+  // Check if SendGrid is configured
+  if (!isEmailConfigured()) {
+    return {
+      success: false,
+      error: 'Email service not configured',
+    };
+  }
+
   try {
     const msg = {
       to: email,
@@ -43,10 +90,27 @@ export async function sendInvitationEmail(email: string, fullName: string): Prom
     await sgMail.send(msg);
     return { success: true };
   } catch (error) {
-    console.error('Failed to send invitation email:', error);
+    // Type guard for error object
+    const err = error as { message?: string; code?: number; response?: { body?: unknown } };
+
+    // Log detailed error information
+    console.error('Failed to send invitation email:', {
+      error: err.message,
+      code: err.code,
+      response: err.response?.body,
+    });
+
+    // Provide helpful error messages
+    let errorMessage = 'Unknown error';
+    if (err.code === 403) {
+      errorMessage = 'SendGrid API key lacks permissions or sender email not verified';
+    } else if (err.message) {
+      errorMessage = err.message;
+    }
+
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: errorMessage,
     };
   }
 }
@@ -67,6 +131,14 @@ export async function sendRequestNotificationEmail(
   endDate: Date,
   daysCount: number
 ): Promise<EmailResult> {
+  // Check if SendGrid is configured
+  if (!isEmailConfigured()) {
+    return {
+      success: false,
+      error: 'Email service not configured',
+    };
+  }
+
   try {
     const formattedStartDate = startDate.toLocaleDateString('en-US', {
       year: 'numeric',
@@ -140,6 +212,14 @@ export async function sendApprovalEmail(
   endDate: Date,
   daysCount: number
 ): Promise<EmailResult> {
+  // Check if SendGrid is configured
+  if (!isEmailConfigured()) {
+    return {
+      success: false,
+      error: 'Email service not configured',
+    };
+  }
+
   try {
     const formattedStartDate = startDate.toLocaleDateString('en-US', {
       year: 'numeric',
@@ -211,6 +291,14 @@ export async function sendDenialEmail(
   daysCount: number,
   rejectionReason: string
 ): Promise<EmailResult> {
+  // Check if SendGrid is configured
+  if (!isEmailConfigured()) {
+    return {
+      success: false,
+      error: 'Email service not configured',
+    };
+  }
+
   try {
     const formattedStartDate = startDate.toLocaleDateString('en-US', {
       year: 'numeric',
