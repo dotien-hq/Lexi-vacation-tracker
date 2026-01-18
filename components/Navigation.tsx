@@ -29,17 +29,14 @@ export default function Navigation() {
           return;
         }
 
-        // Fetch the user's profile to get their role (match by email, not Supabase auth ID)
-        const { data: profile, error } = await supabase
-          .from('Profile')
-          .select('role')
-          .eq('email', session.user.email)
-          .single();
+        // Fetch the user's profile using the API endpoint
+        const response = await fetch('/api/profile/me');
 
-        if (error) {
-          console.error('Error fetching user profile:', error);
+        if (!response.ok) {
+          console.error('Error fetching user profile:', response.statusText);
           setUserRole(null);
         } else {
+          const profile = await response.json();
           setUserRole(profile?.role || null);
         }
       } catch (error) {

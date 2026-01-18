@@ -27,6 +27,7 @@ export async function GET() {
         fullName: true,
         role: true,
         status: true,
+        isActive: true,
         daysCarryOver: true,
         daysCurrentYear: true,
         invitedAt: true,
@@ -44,7 +45,7 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ profiles });
+    return NextResponse.json(profiles);
   } catch (error) {
     console.error('Error fetching profiles:', error);
     return NextResponse.json({ error: 'Failed to fetch profiles' }, { status: 500 });

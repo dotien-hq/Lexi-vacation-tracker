@@ -1,10 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{
     type: 'success' | 'error';
@@ -18,11 +21,9 @@ export default function LoginPage() {
     setMessage(null);
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+        password,
       });
 
       if (error) {
@@ -31,11 +32,8 @@ export default function LoginPage() {
           text: error.message,
         });
       } else {
-        setMessage({
-          type: 'success',
-          text: 'Check your email for the magic link!',
-        });
-        setEmail('');
+        // Successfully logged in, redirect to dashboard
+        router.push('/dashboard');
       }
     } catch {
       setMessage({
@@ -73,6 +71,22 @@ export default function LoginPage() {
               />
             </div>
 
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="Enter your password"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                disabled={loading}
+              />
+            </div>
+
             {message && (
               <div
                 className={`p-4 rounded-lg ${
@@ -87,15 +101,15 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || !email}
+              disabled={loading || !email || !password}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Sending magic link...' : 'Send Magic Link'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
           <div className="mt-6 text-center text-sm text-slate-600">
-            <p>We&apos;ll send you a magic link to sign in without a password.</p>
+            <p>New employee? Check your email for an invitation link.</p>
           </div>
         </div>
       </div>

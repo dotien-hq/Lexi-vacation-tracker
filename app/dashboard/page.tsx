@@ -75,7 +75,7 @@ export default function DashboardPage() {
 
       // Fetch profile and requests
       const [profileRes, requestsRes] = await Promise.all([
-        fetch('/api/profiles'),
+        fetch('/api/profile/me'),
         fetch('/api/requests'),
       ]);
 
@@ -83,15 +83,10 @@ export default function DashboardPage() {
         throw new Error('Failed to fetch data');
       }
 
-      const profilesData = await profileRes.json();
+      const profileData = await profileRes.json();
       const requestsData = await requestsRes.json();
 
-      // Find current user's profile by email (Supabase auth ID != Prisma profile ID)
-      const userProfile = Array.isArray(profilesData)
-        ? profilesData.find((p: Profile) => p.email === user.email)
-        : profilesData;
-
-      setProfile(userProfile || null);
+      setProfile(profileData);
       setRequests(requestsData);
     } catch (error) {
       console.error('Failed to fetch data:', error);
