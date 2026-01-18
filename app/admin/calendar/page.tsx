@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertTriangle } from 'lucide-react';
 
 interface Profile {
@@ -20,9 +21,40 @@ interface LeaveRequest {
 }
 
 export default function AdminCalendarPage() {
+  const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Check user role before rendering admin content
+  useEffect(() => {
+    async function checkRole() {
+      try {
+        const res = await fetch('/api/profile/me');
+        if (!res.ok) {
+          router.push('/login');
+          return;
+        }
+
+        const profile = await res.json();
+        if (profile?.role !== 'ADMIN') {
+          router.push('/access-denied');
+          return;
+        }
+
+        setIsAuthorized(true);
+      } catch (error) {
+        console.error('Failed to verify role:', error);
+        router.push('/login');
+      } finally {
+        setIsChecking(false);
+      }
+    }
+
+    checkRole();
+  }, [router]);
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -41,8 +73,10 @@ export default function AdminCalendarPage() {
   }, []);
 
   useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+    if (isAuthorized) {
+      fetchRequests();
+    }
+  }, [fetchRequests, isAuthorized]);
 
   const monthNames = [
     'January',
@@ -123,6 +157,18 @@ export default function AdminCalendarPage() {
   const isWeekend = (dayIndex: number): boolean => {
     return dayIndex % 7 === 5 || dayIndex % 7 === 6;
   };
+
+  if (isChecking) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-slate-500">Verifying permissions...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null; // Redirecting
+  }
 
   if (loading) {
     return (

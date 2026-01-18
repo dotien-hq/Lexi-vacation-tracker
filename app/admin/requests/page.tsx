@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { ClipboardList, CheckCircle, XCircle, Calendar, User, Clock, X } from 'lucide-react';
 
 interface Profile {
@@ -22,6 +23,9 @@ interface LeaveRequest {
 }
 
 export default function AdminRequestsPage() {
+  const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDenyModal, setShowDenyModal] = useState(false);
@@ -31,6 +35,34 @@ export default function AdminRequestsPage() {
     type: 'success' | 'error';
     text: string;
   } | null>(null);
+
+  // Check user role before rendering admin content
+  useEffect(() => {
+    async function checkRole() {
+      try {
+        const res = await fetch('/api/profile/me');
+        if (!res.ok) {
+          router.push('/login');
+          return;
+        }
+
+        const profile = await res.json();
+        if (profile?.role !== 'ADMIN') {
+          router.push('/access-denied');
+          return;
+        }
+
+        setIsAuthorized(true);
+      } catch (error) {
+        console.error('Failed to verify role:', error);
+        router.push('/login');
+      } finally {
+        setIsChecking(false);
+      }
+    }
+
+    checkRole();
+  }, [router]);
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -50,8 +82,10 @@ export default function AdminRequestsPage() {
   }, []);
 
   useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+    if (isAuthorized) {
+      fetchRequests();
+    }
+  }, [fetchRequests, isAuthorized]);
 
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
@@ -135,6 +169,18 @@ export default function AdminRequestsPage() {
       day: 'numeric',
     });
   };
+
+  if (isChecking) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-slate-500">Verifying permissions...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null; // Redirecting
+  }
 
   if (loading) {
     return (
