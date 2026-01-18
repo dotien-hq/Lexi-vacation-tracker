@@ -4,7 +4,7 @@ import { getAuthenticatedProfile } from '@/lib/auth';
 import { sendReinviteEmail } from '@/lib/email';
 import { generateInvitationToken, hashToken, generateInvitationExpiry } from '@/lib/tokens';
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Verify admin authentication
     const adminProfile = await getAuthenticatedProfile();
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Find profile
     const profile = await prisma.profile.findUnique({

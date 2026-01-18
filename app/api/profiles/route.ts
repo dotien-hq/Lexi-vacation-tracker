@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
-    const { email, fullName, daysCarryOver, daysCurrentYear } = body;
+    const { email, fullName, daysCarryOver, daysCurrentYear, role } = body;
 
     if (!email) {
       return NextResponse.json({ error: 'Missing required field: email' }, { status: 400 });
@@ -78,6 +78,11 @@ export async function POST(request: NextRequest) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
+    }
+
+    // Validate role if provided
+    if (role && !['USER', 'ADMIN'].includes(role)) {
+      return NextResponse.json({ error: 'Invalid role. Must be USER or ADMIN' }, { status: 400 });
     }
 
     // Check if profile already exists
@@ -102,7 +107,7 @@ export async function POST(request: NextRequest) {
       data: {
         email,
         fullName: fullName || null,
-        role: Role.USER,
+        role: (role as Role) || Role.USER,
         daysCurrentYear: daysCurrentYear ?? 20,
         daysCarryOver: daysCarryOver ?? 0,
         status: 'PENDING',

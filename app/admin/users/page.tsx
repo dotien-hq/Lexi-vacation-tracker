@@ -8,9 +8,10 @@ interface Profile {
   email: string;
   fullName: string | null;
   role: 'USER' | 'ADMIN';
+  status: 'PENDING' | 'ACTIVE' | 'DEACTIVATED';
   daysCarryOver: number;
   daysCurrentYear: number;
-  isActive: boolean;
+  isActive: boolean; // Legacy field
   createdAt: string;
   updatedAt: string;
 }
@@ -31,6 +32,7 @@ export default function AdminUsersPage() {
     fullName: '',
     daysCarryOver: 0,
     daysCurrentYear: 20,
+    role: 'USER' as 'USER' | 'ADMIN',
   });
 
   // Edit form state
@@ -38,6 +40,7 @@ export default function AdminUsersPage() {
     daysCarryOver: 0,
     daysCurrentYear: 0,
     isActive: true,
+    role: 'USER' as 'USER' | 'ADMIN',
   });
 
   const fetchProfiles = useCallback(async () => {
@@ -88,6 +91,7 @@ export default function AdminUsersPage() {
           fullName: '',
           daysCarryOver: 0,
           daysCurrentYear: 20,
+          role: 'USER',
         });
         await fetchProfiles();
       } else {
@@ -127,11 +131,16 @@ export default function AdminUsersPage() {
   };
 
   const handleArchive = async (profile: Profile) => {
-    if (
-      !confirm(
-        `Are you sure you want to ${profile.isActive ? 'archive' : 'activate'} ${profile.fullName || profile.email}?`
-      )
-    ) {
+    // Don't allow archiving PENDING users
+    if (profile.status === 'PENDING') {
+      showMessage('error', 'Cannot archive a user who has not yet accepted their invitation');
+      return;
+    }
+
+    const newStatus = profile.status === 'ACTIVE' ? 'DEACTIVATED' : 'ACTIVE';
+    const action = newStatus === 'DEACTIVATED' ? 'archive' : 'activate';
+
+    if (!confirm(`Are you sure you want to ${action} ${profile.fullName || profile.email}?`)) {
       return;
     }
 
@@ -139,14 +148,14 @@ export default function AdminUsersPage() {
       const response = await fetch(`/api/profiles/${profile.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: !profile.isActive }),
+        body: JSON.stringify({
+          status: newStatus,
+          isActive: newStatus === 'ACTIVE', // Update legacy field too
+        }),
       });
 
       if (response.ok) {
-        showMessage(
-          'success',
-          `Profile ${profile.isActive ? 'archived' : 'activated'} successfully!`
-        );
+        showMessage('success', `Profile ${action}d successfully!`);
         await fetchProfiles();
       } else {
         const error = await response.json();
@@ -164,6 +173,7 @@ export default function AdminUsersPage() {
       daysCarryOver: profile.daysCarryOver,
       daysCurrentYear: profile.daysCurrentYear,
       isActive: profile.isActive,
+      role: profile.role,
     });
   };
 
@@ -245,6 +255,20 @@ export default function AdminUsersPage() {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Role</label>
+                <select
+                  value={inviteForm.role}
+                  onChange={(e) =>
+                    setInviteForm({ ...inviteForm, role: e.target.value as 'USER' | 'ADMIN' })
+                  }
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                >
+                  <option value="USER">User</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -320,6 +344,20 @@ export default function AdminUsersPage() {
             </div>
 
             <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Role</label>
+                <select
+                  value={editForm.role}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, role: e.target.value as 'USER' | 'ADMIN' })
+                  }
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                >
+                  <option value="USER">User</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -387,7 +425,7 @@ export default function AdminUsersPage() {
             <div
               key={profile.id}
               className={`p-6 hover:bg-slate-50/50 transition-colors ${
-                !profile.isActive ? 'opacity-50' : ''
+                profile.status === 'DEACTIVATED' ? 'opacity-50' : ''
               }`}
             >
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -410,7 +448,13 @@ export default function AdminUsersPage() {
                       >
                         {profile.role}
                       </span>
-                      {!profile.isActive && (
+                      {profile.status === 'PENDING' && (
+                        <span className="px-2 py-0.5 rounded text-xs font-black bg-yellow-100 text-yellow-700 flex items-center gap-1">
+                          <Mail size={12} />
+                          Pending Invitation
+                        </span>
+                      )}
+                      {profile.status === 'DEACTIVATED' && (
                         <span className="px-2 py-0.5 rounded text-xs font-black bg-red-100 text-red-700 flex items-center gap-1">
                           <Archive size={12} />
                           Archived
@@ -468,17 +512,19 @@ export default function AdminUsersPage() {
                     >
                       <Edit2 size={18} />
                     </button>
-                    <button
-                      onClick={() => handleArchive(profile)}
-                      className={`p-2 border rounded-lg transition-all ${
-                        profile.isActive
-                          ? 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                          : 'border-green-200 text-green-600 hover:bg-green-50'
-                      }`}
-                      title={profile.isActive ? 'Archive user' : 'Activate user'}
-                    >
-                      {profile.isActive ? <Archive size={18} /> : <Check size={18} />}
-                    </button>
+                    {profile.status !== 'PENDING' && (
+                      <button
+                        onClick={() => handleArchive(profile)}
+                        className={`p-2 border rounded-lg transition-all ${
+                          profile.status === 'ACTIVE'
+                            ? 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                            : 'border-green-200 text-green-600 hover:bg-green-50'
+                        }`}
+                        title={profile.status === 'ACTIVE' ? 'Archive user' : 'Activate user'}
+                      >
+                        {profile.status === 'ACTIVE' ? <Archive size={18} /> : <Check size={18} />}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

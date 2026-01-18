@@ -31,13 +31,45 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     // Parse and validate request body
     const body = await request.json();
-    const { daysCarryOver, daysCurrentYear, isActive } = body;
+    const { daysCarryOver, daysCurrentYear, isActive, role, status } = body;
+
+    // Role change protection logic
+    if (role && role !== existingProfile.role) {
+      // Validate role value
+      if (!['USER', 'ADMIN'].includes(role)) {
+        return NextResponse.json({ error: 'Invalid role. Must be USER or ADMIN' }, { status: 400 });
+      }
+
+      // Protection 1: Prevent self-role change
+      if (existingProfile.id === userProfile.id) {
+        return NextResponse.json({ error: 'Cannot change your own role' }, { status: 403 });
+      }
+
+      // Protection 2: Prevent demoting the last active admin
+      if (existingProfile.role === Role.ADMIN && role === 'USER') {
+        const activeAdminCount = await prisma.profile.count({
+          where: {
+            role: Role.ADMIN,
+            status: 'ACTIVE',
+          },
+        });
+
+        if (activeAdminCount <= 1) {
+          return NextResponse.json(
+            { error: 'Cannot demote the last active admin' },
+            { status: 403 }
+          );
+        }
+      }
+    }
 
     // Build update data object with only provided fields
     const updateData: {
       daysCarryOver?: number;
       daysCurrentYear?: number;
       isActive?: boolean;
+      role?: Role;
+      status?: 'PENDING' | 'ACTIVE' | 'DEACTIVATED';
     } = {};
 
     if (daysCarryOver !== undefined) {
@@ -65,6 +97,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         return NextResponse.json({ error: 'isActive must be a boolean' }, { status: 400 });
       }
       updateData.isActive = isActive;
+    }
+
+    if (role !== undefined) {
+      updateData.role = role as Role;
+    }
+
+    if (status !== undefined) {
+      // Validate status value
+      if (!['PENDING', 'ACTIVE', 'DEACTIVATED'].includes(status)) {
+        return NextResponse.json(
+          { error: 'Invalid status. Must be PENDING, ACTIVE, or DEACTIVATED' },
+          { status: 400 }
+        );
+      }
+      updateData.status = status;
     }
 
     // Update profile
