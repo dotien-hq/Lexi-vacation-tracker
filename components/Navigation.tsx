@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LayoutGrid, Calendar, Users, FileText } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase';
 
@@ -10,6 +10,7 @@ type UserRole = 'USER' | 'ADMIN' | null;
 
 export default function Navigation() {
   const pathname = usePathname();
+  const router = useRouter();
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
 
@@ -49,6 +50,15 @@ export default function Navigation() {
 
     fetchUserProfile();
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   // Base navigation items for all authenticated users
   const baseNavItems = [
@@ -117,6 +127,14 @@ export default function Navigation() {
                   <span className="hidden sm:inline">{item.label}</span>
                 </Link>
               ))}
+            {!loading && userRole && (
+              <button
+                onClick={handleLogout}
+                className="text-slate-500 hover:text-[#0041F0] px-3 py-2 text-sm font-bold transition-all duration-200"
+              >
+                Odjavi se
+              </button>
+            )}
           </nav>
         </div>
       </div>
