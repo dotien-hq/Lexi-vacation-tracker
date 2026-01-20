@@ -38,7 +38,7 @@ describe('Navigation Logout', () => {
 
     render(<Navigation />);
 
-    expect(screen.getByText('Odjavi se')).toBeInTheDocument();
+    expect(screen.getByText('Sign Out')).toBeInTheDocument();
   });
 
   it('should call signOut and redirect on logout click', async () => {
@@ -69,9 +69,9 @@ describe('Navigation Logout', () => {
 
     render(<Navigation />);
 
-    expect(screen.getByText('Odjavi se')).toBeInTheDocument();
+    expect(screen.getByText('Sign Out')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('Odjavi se'));
+    fireEvent.click(screen.getByText('Sign Out'));
 
     await waitFor(() => {
       expect(mockSignOut).toHaveBeenCalled();

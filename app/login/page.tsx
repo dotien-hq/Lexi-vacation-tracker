@@ -114,7 +114,7 @@ export default function LoginPage() {
               href="/auth/forgot-password"
               className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
             >
-              Zaboravili ste lozinku?
+              Forgot your password?
             </Link>
           </div>
 

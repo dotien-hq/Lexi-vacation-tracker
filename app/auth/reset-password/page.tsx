@@ -20,7 +20,7 @@ export default function ResetPasswordPage() {
 
       if (!session) {
         // No valid session - token may be expired or invalid
-        setError('Link za resetiranje lozinke je istekao. Zatražite novi link.');
+        setError('Password reset link has expired. Please request a new link.');
       }
     };
 
@@ -34,13 +34,13 @@ export default function ResetPasswordPage() {
 
     // Validation
     if (password.length < 8) {
-      setError('Lozinka mora imati najmanje 8 znakova.');
+      setError('Password must be at least 8 characters.');
       setLoading(false);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Lozinke se ne podudaraju.');
+      setError('Passwords do not match.');
       setLoading(false);
       return;
     }
@@ -58,7 +58,7 @@ export default function ResetPasswordPage() {
         router.push('/dashboard');
       }
     } catch (err) {
-      setError('Greška prilikom resetiranja lozinke.');
+      setError('Error resetting password.');
     } finally {
       setLoading(false);
     }
@@ -68,11 +68,9 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Resetiraj lozinku
-          </h2>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Reset Password</h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Unesite novu lozinku za vaš račun.
+            Enter a new password for your account.
           </p>
         </div>
 
@@ -80,7 +78,7 @@ export default function ResetPasswordPage() {
           <div className="space-y-4">
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Nova lozinka
+                New Password
               </label>
               <input
                 id="password"
@@ -91,13 +89,13 @@ export default function ResetPasswordPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Minimalno 8 znakova"
+                placeholder="Minimum 8 characters"
               />
             </div>
 
             <div>
               <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700">
-                Potvrdi lozinku
+                Confirm Password
               </label>
               <input
                 id="confirm-password"
@@ -108,7 +106,7 @@ export default function ResetPasswordPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={loading}
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Ponovi lozinku"
+                placeholder="Repeat password"
               />
             </div>
           </div>
@@ -125,7 +123,7 @@ export default function ResetPasswordPage() {
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Resetiram...' : 'Resetiraj lozinku'}
+              {loading ? 'Resetting...' : 'Reset Password'}
             </button>
           </div>
         </form>

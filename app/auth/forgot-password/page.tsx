@@ -25,19 +25,19 @@ export default function ForgotPasswordPage() {
       if (response.ok) {
         setMessage({
           type: 'success',
-          text: 'Provjerite email za link za resetiranje lozinke.',
+          text: 'Check your email for a password reset link.',
         });
         setEmail('');
       } else {
         setMessage({
           type: 'error',
-          text: data.error || 'Greška prilikom slanja emaila.',
+          text: data.error || 'Error sending email.',
         });
       }
     } catch {
       setMessage({
         type: 'error',
-        text: 'Greška prilikom slanja zahtjeva.',
+        text: 'Error sending request.',
       });
     } finally {
       setLoading(false);
@@ -49,17 +49,17 @@ export default function ForgotPasswordPage() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Zaboravljena lozinka
+            Forgot Password
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Unesite email adresu i poslat ćemo vam link za resetiranje lozinke.
+            Enter your email address and we&apos;ll send you a password reset link.
           </p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email adresa
+              Email Address
             </label>
             <input
               id="email"
@@ -70,7 +70,7 @@ export default function ForgotPasswordPage() {
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
               className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-              placeholder="vas@email.com"
+              placeholder="you@example.com"
             />
           </div>
 
@@ -90,13 +90,13 @@ export default function ForgotPasswordPage() {
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Šaljem...' : 'Pošalji link'}
+              {loading ? 'Sending...' : 'Send Link'}
             </button>
           </div>
 
           <div className="text-center">
             <Link href="/login" className="text-sm text-indigo-600 hover:text-indigo-500">
-              Povratak na prijavu
+              Back to login
             </Link>
           </div>
         </form>

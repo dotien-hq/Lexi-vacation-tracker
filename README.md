@@ -1,6 +1,6 @@
-# Lexi Vacation Tracker (Godišnji)
+# Lexi Vacation Tracker
 
-Croatian vacation/leave management system built with Next.js 15, Prisma, and Supabase PostgreSQL.
+Vacation/leave management system built with Next.js 15, Prisma, and Supabase PostgreSQL.
 
 ## Architecture
 
@@ -159,7 +159,7 @@ Excludes:
 
 ### Logout
 
-Users can sign out using the "Odjavi se" button in the navigation bar. This:
+Users can sign out using the "Sign Out" button in the navigation bar. This:
 
 - Calls `/api/auth/logout` to terminate the Supabase session
 - Redirects to the login page
@@ -169,7 +169,7 @@ Users can sign out using the "Odjavi se" button in the navigation bar. This:
 
 Users who forget their password can reset it:
 
-1. Click "Zaboravili ste lozinku?" on the login page
+1. Click "Forgot your password?" on the login page
 2. Enter email address at `/auth/forgot-password`
 3. Receive email with reset link from Supabase
 4. Click link to set new password at `/auth/reset-password`

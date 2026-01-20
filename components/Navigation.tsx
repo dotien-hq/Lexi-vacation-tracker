@@ -62,7 +62,7 @@ export default function Navigation() {
           >
             <span className="text-2xl font-black text-slate-900 tracking-tight">LEXI</span>
             <span className="mx-3 text-slate-300 font-light text-2xl">|</span>
-            <span className="text-xl font-medium text-slate-500">Godišnji</span>
+            <span className="text-xl font-medium text-slate-500">Vacation Tracker</span>
           </Link>
           <nav className="flex space-x-6">
             {!loading &&
@@ -93,7 +93,7 @@ export default function Navigation() {
                 onClick={handleLogout}
                 className="text-slate-500 hover:text-[#0041F0] px-3 py-2 text-sm font-bold transition-all duration-200"
               >
-                Odjavi se
+                Sign Out
               </button>
             )}
           </nav>

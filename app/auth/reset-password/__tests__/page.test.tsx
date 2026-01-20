@@ -30,9 +30,9 @@ describe('ResetPasswordPage', () => {
 
     render(<ResetPasswordPage />);
 
-    expect(screen.getByRole('heading', { name: /resetiraj lozinku/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/nova lozinka/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/potvrdi lozinku/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /reset password/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/new password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
   });
 
   it('should update password and redirect on success', async () => {
@@ -60,14 +60,14 @@ describe('ResetPasswordPage', () => {
 
     render(<ResetPasswordPage />);
 
-    fireEvent.change(screen.getByLabelText(/nova lozinka/i), {
+    fireEvent.change(screen.getByLabelText(/new password/i), {
       target: { value: 'newpassword123' },
     });
-    fireEvent.change(screen.getByLabelText(/potvrdi lozinku/i), {
+    fireEvent.change(screen.getByLabelText(/confirm password/i), {
       target: { value: 'newpassword123' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /resetiraj/i }));
+    fireEvent.click(screen.getByRole('button', { name: /reset password/i }));
 
     await waitFor(() => {
       expect(mockUpdateUser).toHaveBeenCalledWith({
@@ -91,17 +91,17 @@ describe('ResetPasswordPage', () => {
 
     render(<ResetPasswordPage />);
 
-    fireEvent.change(screen.getByLabelText(/nova lozinka/i), {
+    fireEvent.change(screen.getByLabelText(/new password/i), {
       target: { value: 'password123' },
     });
-    fireEvent.change(screen.getByLabelText(/potvrdi lozinku/i), {
+    fireEvent.change(screen.getByLabelText(/confirm password/i), {
       target: { value: 'different123' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /resetiraj/i }));
+    fireEvent.click(screen.getByRole('button', { name: /reset password/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/lozinke se ne podudaraju/i)).toBeInTheDocument();
+      expect(screen.getByText(/passwords do not match/i)).toBeInTheDocument();
     });
   });
 
@@ -119,17 +119,17 @@ describe('ResetPasswordPage', () => {
 
     render(<ResetPasswordPage />);
 
-    fireEvent.change(screen.getByLabelText(/nova lozinka/i), {
+    fireEvent.change(screen.getByLabelText(/new password/i), {
       target: { value: 'short' },
     });
-    fireEvent.change(screen.getByLabelText(/potvrdi lozinku/i), {
+    fireEvent.change(screen.getByLabelText(/confirm password/i), {
       target: { value: 'short' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /resetiraj/i }));
+    fireEvent.click(screen.getByRole('button', { name: /reset password/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/najmanje 8 znakova/i)).toBeInTheDocument();
+      expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument();
     });
   });
 
@@ -152,14 +152,14 @@ describe('ResetPasswordPage', () => {
 
     render(<ResetPasswordPage />);
 
-    fireEvent.change(screen.getByLabelText(/nova lozinka/i), {
+    fireEvent.change(screen.getByLabelText(/new password/i), {
       target: { value: 'newpassword123' },
     });
-    fireEvent.change(screen.getByLabelText(/potvrdi lozinku/i), {
+    fireEvent.change(screen.getByLabelText(/confirm password/i), {
       target: { value: 'newpassword123' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /resetiraj/i }));
+    fireEvent.click(screen.getByRole('button', { name: /reset password/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/token expired/i)).toBeInTheDocument();
@@ -182,17 +182,17 @@ describe('ResetPasswordPage', () => {
 
     render(<ResetPasswordPage />);
 
-    fireEvent.change(screen.getByLabelText(/nova lozinka/i), {
+    fireEvent.change(screen.getByLabelText(/new password/i), {
       target: { value: 'newpassword123' },
     });
-    fireEvent.change(screen.getByLabelText(/potvrdi lozinku/i), {
+    fireEvent.change(screen.getByLabelText(/confirm password/i), {
       target: { value: 'newpassword123' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /resetiraj/i }));
+    fireEvent.click(screen.getByRole('button', { name: /reset password/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/greška prilikom resetiranja lozinke/i)).toBeInTheDocument();
+      expect(screen.getByText(/error resetting password/i)).toBeInTheDocument();
     });
   });
 
@@ -211,7 +211,7 @@ describe('ResetPasswordPage', () => {
     render(<ResetPasswordPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/link za resetiranje lozinke je istekao/i)).toBeInTheDocument();
+      expect(screen.getByText(/password reset link has expired/i)).toBeInTheDocument();
     });
   });
 });
