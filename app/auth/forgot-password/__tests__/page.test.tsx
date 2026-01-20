@@ -59,4 +59,19 @@ describe('ForgotPasswordPage', () => {
       expect(screen.getByText(/email not found/i)).toBeInTheDocument();
     });
   });
+
+  it('should handle network errors', async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error('Network error'));
+
+    render(<ForgotPasswordPage />);
+    const emailInput = screen.getByLabelText(/email/i);
+    const submitButton = screen.getByRole('button', { name: /pošalji/i });
+
+    fireEvent.change(emailInput, { target: { value: 'user@example.com' } });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/greška prilikom slanja zahtjeva/i)).toBeInTheDocument();
+    });
+  });
 });
