@@ -1,55 +1,15 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutGrid, Calendar, Users, FileText } from 'lucide-react';
-import { createBrowserClient } from '@/lib/supabase';
-
-type UserRole = 'USER' | 'ADMIN' | null;
+import { useAuth } from '@/lib/auth-context';
 
 export default function Navigation() {
   const pathname = usePathname();
   const router = useRouter();
-  const [userRole, setUserRole] = useState<UserRole>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchUserProfile() {
-      try {
-        const supabase = createBrowserClient();
-
-        // Get the current session
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!session?.user) {
-          setUserRole(null);
-          setLoading(false);
-          return;
-        }
-
-        // Fetch the user's profile using the API endpoint
-        const response = await fetch('/api/profile/me');
-
-        if (!response.ok) {
-          console.error('Error fetching user profile:', response.statusText);
-          setUserRole(null);
-        } else {
-          const profile = await response.json();
-          setUserRole(profile?.role || null);
-        }
-      } catch (error) {
-        console.error('Error in fetchUserProfile:', error);
-        setUserRole(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchUserProfile();
-  }, []);
+  const { profile, loading } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -89,7 +49,8 @@ export default function Navigation() {
   ];
 
   // Determine which nav items to show based on role
-  const navItems = userRole === 'ADMIN' ? [...baseNavItems, ...adminNavItems] : baseNavItems;
+  const isAdmin = profile?.role === 'ADMIN';
+  const navItems = isAdmin ? [...baseNavItems, ...adminNavItems] : baseNavItems;
 
   return (
     <header className="bg-white border-b border-slate-100 sticky top-0 z-50">
@@ -127,7 +88,7 @@ export default function Navigation() {
                   <span className="hidden sm:inline">{item.label}</span>
                 </Link>
               ))}
-            {!loading && userRole && (
+            {!loading && profile && (
               <button
                 onClick={handleLogout}
                 className="text-slate-500 hover:text-[#0041F0] px-3 py-2 text-sm font-bold transition-all duration-200"

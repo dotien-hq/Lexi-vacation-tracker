@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Navigation from '../Navigation';
-import { createBrowserClient } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-context';
+import { Role } from '@prisma/client';
 
-vi.mock('@/lib/supabase');
+vi.mock('@/lib/auth-context');
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
@@ -19,47 +20,50 @@ describe('Navigation Logout', () => {
   });
 
   it('should display logout button when user is authenticated', async () => {
-    const mockGetSession = vi.fn().mockResolvedValue({
-      data: { session: { user: { id: '123' } } },
-      error: null,
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: '123', email: 'user@example.com' } as any,
+      profile: {
+        id: '1',
+        authId: '123',
+        email: 'user@example.com',
+        fullName: 'Test User',
+        role: Role.USER,
+        daysAvailable: 20,
+        daysCarryOver: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      loading: false,
     });
-
-    vi.mocked(createBrowserClient).mockReturnValue({
-      auth: { getSession: mockGetSession },
-    } as unknown as ReturnType<typeof createBrowserClient>);
-
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({ role: 'USER' }),
-    } as unknown as Response);
 
     render(<Navigation />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Odjavi se')).toBeInTheDocument();
-    });
+    expect(screen.getByText('Odjavi se')).toBeInTheDocument();
   });
 
   it('should call logout endpoint and redirect on logout click', async () => {
     const mockPush = vi.fn();
-    const mockGetSession = vi.fn().mockResolvedValue({
-      data: { session: { user: { id: '123' } } },
-      error: null,
+
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: '123', email: 'user@example.com' } as any,
+      profile: {
+        id: '1',
+        authId: '123',
+        email: 'user@example.com',
+        fullName: 'Test User',
+        role: Role.USER,
+        daysAvailable: 20,
+        daysCarryOver: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      loading: false,
     });
 
-    vi.mocked(createBrowserClient).mockReturnValue({
-      auth: { getSession: mockGetSession },
-    } as unknown as ReturnType<typeof createBrowserClient>);
-
-    vi.mocked(fetch)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ role: 'USER' }),
-      } as unknown as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true }),
-      } as unknown as Response);
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true }),
+    } as unknown as Response);
 
     const useRouter = await import('next/navigation');
     vi.spyOn(useRouter, 'useRouter').mockReturnValue({
@@ -68,9 +72,7 @@ describe('Navigation Logout', () => {
 
     render(<Navigation />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Odjavi se')).toBeInTheDocument();
-    });
+    expect(screen.getByText('Odjavi se')).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Odjavi se'));
 
