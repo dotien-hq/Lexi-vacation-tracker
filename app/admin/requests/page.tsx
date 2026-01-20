@@ -29,8 +29,10 @@ export default function AdminRequestsPage() {
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDenyModal, setShowDenyModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [isApproving, setIsApproving] = useState(false);
   const [message, setMessage] = useState<{
     type: 'success' | 'error';
     text: string;
@@ -92,15 +94,17 @@ export default function AdminRequestsPage() {
     setTimeout(() => setMessage(null), 5000);
   };
 
-  const handleApprove = async (request: LeaveRequest) => {
-    if (
-      !confirm(`Approve leave request for ${request.profile.fullName || request.profile.email}?`)
-    ) {
-      return;
-    }
+  const openApproveModal = (request: LeaveRequest) => {
+    setSelectedRequest(request);
+    setShowApproveModal(true);
+  };
 
+  const handleApprove = async () => {
+    if (!selectedRequest) return;
+
+    setIsApproving(true);
     try {
-      const response = await fetch(`/api/requests/${request.id}`, {
+      const response = await fetch(`/api/requests/${selectedRequest.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'APPROVED' }),
@@ -108,6 +112,8 @@ export default function AdminRequestsPage() {
 
       if (response.ok) {
         showMessage('success', 'Request approved successfully!');
+        setShowApproveModal(false);
+        setSelectedRequest(null);
         await fetchRequests();
       } else {
         const error = await response.json();
@@ -116,6 +122,8 @@ export default function AdminRequestsPage() {
     } catch (error) {
       console.error('Failed to approve request:', error);
       showMessage('error', 'An error occurred while approving request');
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -210,6 +218,59 @@ export default function AdminRequestsPage() {
           }`}
         >
           {message.text}
+        </div>
+      )}
+
+      {/* Approve Modal */}
+      {showApproveModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[24px] shadow-2xl max-w-md w-full p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-slate-900">Approve Request</h2>
+              <button
+                onClick={() => setShowApproveModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-100">
+              <p className="font-bold text-slate-900">
+                {selectedRequest.profile.fullName || selectedRequest.profile.email}
+              </p>
+              <p className="text-sm text-slate-600">
+                {formatDate(selectedRequest.startDate)} - {formatDate(selectedRequest.endDate)}
+              </p>
+              <p className="text-sm text-slate-600 mt-1">
+                {selectedRequest.daysCount} business day{selectedRequest.daysCount !== 1 ? 's' : ''}
+              </p>
+            </div>
+
+            <p className="text-sm text-slate-600 mb-6">
+              Are you sure you want to approve this leave request? The vacation days will be
+              deducted from the employee&apos;s balance.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowApproveModal(false)}
+                disabled={isApproving}
+                className="flex-1 px-4 py-3 border border-slate-200 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-50 transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleApprove}
+                disabled={isApproving}
+                className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-all disabled:opacity-50"
+              >
+                {isApproving ? 'Approving...' : 'Approve Request'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -324,7 +385,7 @@ export default function AdminRequestsPage() {
 
                 <div className="flex gap-3">
                   <button
-                    onClick={() => handleApprove(request)}
+                    onClick={() => openApproveModal(request)}
                     className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-all shadow-md"
                   >
                     <CheckCircle size={18} strokeWidth={2.5} />
