@@ -73,18 +73,13 @@ function generateEmailTemplate(content: string, theme: EmailTheme, cta?: EmailCT
         <tr>
           <td align="center" style="padding: 40px 20px;">
             <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);">
-              <!-- Header with gradient and decorations -->
+              <!-- Header with gradient -->
               <tr>
-                <td style="position: relative; background: ${headerGradient}; background-color: #0041F0; padding: 24px 40px; text-align: center; height: 80px;">
-                  <!-- Decorative circles -->
-                  <div style="position: absolute; top: -40px; right: 60px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); pointer-events: none;"></div>
-                  <div style="position: absolute; top: 20px; right: 200px; width: 80px; height: 80px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); pointer-events: none;"></div>
-                  <div style="position: absolute; bottom: -30px; right: 150px; width: 100px; height: 100px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); pointer-events: none;"></div>
-
-                  <!-- Branding -->
-                  <div style="position: relative; z-index: 1;">
+                <td style="background: ${headerGradient}; background-color: #0041F0; height: 80px; vertical-align: middle; text-align: center;">
+                  <!-- Branding (centered) -->
+                  <div style="display: inline-block;">
                     <div style="color: white; font-size: 28px; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 4px;">LEXI</div>
-                    <div style="color: white; opacity: 0.9; font-size: 14px;">Vacation Tracker</div>
+                    <div style="color: white; opacity: 0.9; font-size: 14px; letter-spacing: 0.1em;">Vacation Tracker</div>
                   </div>
                 </td>
               </tr>
