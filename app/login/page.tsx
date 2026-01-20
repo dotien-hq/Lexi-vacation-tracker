@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createBrowserClient } from '@/lib/supabase';
 
 export default function LoginPage() {
@@ -107,6 +108,15 @@ export default function LoginPage() {
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
+
+          <div className="mt-4 text-center">
+            <Link
+              href="/auth/forgot-password"
+              className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+            >
+              Zaboravili ste lozinku?
+            </Link>
+          </div>
 
           <div className="mt-6 text-center text-sm text-slate-600">
             <p>New employee? Check your email for an invitation link.</p>
