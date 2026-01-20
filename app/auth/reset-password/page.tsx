@@ -1,15 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const supabase = createBrowserClient();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        // No valid session - token may be expired or invalid
+        setError('Link za resetiranje lozinke je istekao. Zatražite novi link.');
+      }
+    };
+
+    checkSession();
+  }, [supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,18 +46,17 @@ export default function ResetPasswordPage() {
     }
 
     try {
-      const supabase = createBrowserClient();
       const { error: updateError } = await supabase.auth.updateUser({
         password,
       });
 
       if (updateError) {
         setError(updateError.message);
-        return;
+        // Don't return - let finally block reset loading state
+      } else {
+        // Only redirect on success
+        router.push('/dashboard');
       }
-
-      // Redirect to dashboard on success
-      router.push('/dashboard');
     } catch (err) {
       setError('Greška prilikom resetiranja lozinke.');
     } finally {

@@ -17,6 +17,17 @@ describe('ResetPasswordPage', () => {
   });
 
   it('should render password reset form', () => {
+    const mockGetSession = vi.fn().mockResolvedValue({
+      data: { session: { user: { id: '123' } } },
+      error: null,
+    });
+
+    vi.mocked(createBrowserClient).mockReturnValue({
+      auth: {
+        getSession: mockGetSession,
+      },
+    } as unknown as SupabaseClient);
+
     render(<ResetPasswordPage />);
 
     expect(screen.getByRole('heading', { name: /resetiraj lozinku/i })).toBeInTheDocument();
@@ -30,15 +41,22 @@ describe('ResetPasswordPage', () => {
       data: {},
       error: null,
     });
+    const mockGetSession = vi.fn().mockResolvedValue({
+      data: { session: { user: { id: '123' } } },
+      error: null,
+    });
 
     vi.mocked(createBrowserClient).mockReturnValue({
-      auth: { updateUser: mockUpdateUser },
+      auth: {
+        updateUser: mockUpdateUser,
+        getSession: mockGetSession,
+      },
     } as unknown as SupabaseClient);
 
     const useRouter = await import('next/navigation');
     vi.spyOn(useRouter, 'useRouter').mockReturnValue({
       push: mockPush,
-    } as any);
+    } as unknown as ReturnType<typeof useRouter.useRouter>);
 
     render(<ResetPasswordPage />);
 
@@ -60,6 +78,17 @@ describe('ResetPasswordPage', () => {
   });
 
   it('should show error if passwords do not match', async () => {
+    const mockGetSession = vi.fn().mockResolvedValue({
+      data: { session: { user: { id: '123' } } },
+      error: null,
+    });
+
+    vi.mocked(createBrowserClient).mockReturnValue({
+      auth: {
+        getSession: mockGetSession,
+      },
+    } as unknown as SupabaseClient);
+
     render(<ResetPasswordPage />);
 
     fireEvent.change(screen.getByLabelText(/nova lozinka/i), {
@@ -77,6 +106,17 @@ describe('ResetPasswordPage', () => {
   });
 
   it('should show error if password is too short', async () => {
+    const mockGetSession = vi.fn().mockResolvedValue({
+      data: { session: { user: { id: '123' } } },
+      error: null,
+    });
+
+    vi.mocked(createBrowserClient).mockReturnValue({
+      auth: {
+        getSession: mockGetSession,
+      },
+    } as unknown as SupabaseClient);
+
     render(<ResetPasswordPage />);
 
     fireEvent.change(screen.getByLabelText(/nova lozinka/i), {
@@ -90,6 +130,88 @@ describe('ResetPasswordPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/najmanje 8 znakova/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should show error when Supabase returns error', async () => {
+    const mockUpdateUser = vi.fn().mockResolvedValue({
+      data: null,
+      error: { message: 'Token expired' },
+    });
+    const mockGetSession = vi.fn().mockResolvedValue({
+      data: { session: { user: { id: '123' } } },
+      error: null,
+    });
+
+    vi.mocked(createBrowserClient).mockReturnValue({
+      auth: {
+        updateUser: mockUpdateUser,
+        getSession: mockGetSession,
+      },
+    } as unknown as SupabaseClient);
+
+    render(<ResetPasswordPage />);
+
+    fireEvent.change(screen.getByLabelText(/nova lozinka/i), {
+      target: { value: 'newpassword123' },
+    });
+    fireEvent.change(screen.getByLabelText(/potvrdi lozinku/i), {
+      target: { value: 'newpassword123' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /resetiraj/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/token expired/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should show error when generic exception occurs', async () => {
+    const mockUpdateUser = vi.fn().mockRejectedValue(new Error('Network error'));
+    const mockGetSession = vi.fn().mockResolvedValue({
+      data: { session: { user: { id: '123' } } },
+      error: null,
+    });
+
+    vi.mocked(createBrowserClient).mockReturnValue({
+      auth: {
+        updateUser: mockUpdateUser,
+        getSession: mockGetSession,
+      },
+    } as unknown as SupabaseClient);
+
+    render(<ResetPasswordPage />);
+
+    fireEvent.change(screen.getByLabelText(/nova lozinka/i), {
+      target: { value: 'newpassword123' },
+    });
+    fireEvent.change(screen.getByLabelText(/potvrdi lozinku/i), {
+      target: { value: 'newpassword123' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /resetiraj/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/greška prilikom resetiranja lozinke/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should show error when session does not exist', async () => {
+    const mockGetSession = vi.fn().mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
+
+    vi.mocked(createBrowserClient).mockReturnValue({
+      auth: {
+        getSession: mockGetSession,
+      },
+    } as unknown as SupabaseClient);
+
+    render(<ResetPasswordPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/link za resetiranje lozinke je istekao/i)).toBeInTheDocument();
     });
   });
 });
