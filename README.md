@@ -155,6 +155,51 @@ Excludes:
 - Timing-safe token comparison
 - Auth guard enforces ACTIVE status on all protected routes
 
+## Authentication Features
+
+### Logout
+
+Users can sign out using the "Odjavi se" button in the navigation bar. This:
+
+- Calls `/api/auth/logout` to terminate the Supabase session
+- Redirects to the login page
+- Clears all auth state
+
+### Password Reset
+
+Users who forget their password can reset it:
+
+1. Click "Zaboravili ste lozinku?" on the login page
+2. Enter email address at `/auth/forgot-password`
+3. Receive email with reset link from Supabase
+4. Click link to set new password at `/auth/reset-password`
+5. Automatically signed in and redirected to dashboard
+
+### Auth Context
+
+The app provides a global auth context via `AuthProvider`:
+
+```typescript
+import { useAuth } from '@/lib/auth-context';
+
+function MyComponent() {
+  const { user, profile, loading } = useAuth();
+
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <div>Not authenticated</div>;
+
+  return <div>Welcome {profile.fullName}</div>;
+}
+```
+
+### Role-Based Access Control
+
+Middleware protects routes by both authentication and authorization:
+
+- `/dashboard/*` - Requires valid session (USER or ADMIN)
+- `/admin/*` - Requires valid session AND ADMIN role
+- Non-admins redirected to `/access-denied` page
+
 ## API Routes
 
 ### Authentication
