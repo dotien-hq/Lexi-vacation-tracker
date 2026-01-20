@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Navigation from '../Navigation';
 import { useAuth } from '@/lib/auth-context';
-import { Role } from '@prisma/client';
+import { Role } from '@/types';
+import type { User } from '@supabase/supabase-js';
 
 vi.mock('@/lib/auth-context');
 vi.mock('next/navigation', () => ({
@@ -21,15 +22,15 @@ describe('Navigation Logout', () => {
 
   it('should display logout button when user is authenticated', async () => {
     vi.mocked(useAuth).mockReturnValue({
-      user: { id: '123', email: 'user@example.com' } as any,
+      user: { id: '123', email: 'user@example.com' } as unknown as User,
       profile: {
         id: '1',
-        authId: '123',
         email: 'user@example.com',
         fullName: 'Test User',
         role: Role.USER,
-        daysAvailable: 20,
+        daysCurrentYear: 20,
         daysCarryOver: 0,
+        isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -45,15 +46,15 @@ describe('Navigation Logout', () => {
     const mockPush = vi.fn();
 
     vi.mocked(useAuth).mockReturnValue({
-      user: { id: '123', email: 'user@example.com' } as any,
+      user: { id: '123', email: 'user@example.com' } as unknown as User,
       profile: {
         id: '1',
-        authId: '123',
         email: 'user@example.com',
         fullName: 'Test User',
         role: Role.USER,
-        daysAvailable: 20,
+        daysCurrentYear: 20,
         daysCarryOver: 0,
+        isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
