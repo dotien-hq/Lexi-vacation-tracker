@@ -1,22 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase';
 
-export async function POST(request: NextRequest) {
-  const { email } = await request.json();
+type PasswordResetRequest = {
+  email: string;
+};
 
+export async function POST(request: NextRequest) {
+  let email: string;
+
+  try {
+    const body = (await request.json()) as PasswordResetRequest;
+    email = body.email;
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  // Check if email exists
   if (!email) {
     return NextResponse.json({ error: 'Email is required' }, { status: 400 });
   }
 
+  // Check if email is string
+  if (typeof email !== 'string') {
+    return NextResponse.json({ error: 'Email must be a string' }, { status: 400 });
+  }
+
+  // Trim whitespace
+  email = email.trim();
+
+  // Check if empty after trim
+  if (!email) {
+    return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+  }
+
   const supabase = await createServerSupabaseClient();
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+  // Always return success, even if email doesn't exist
+  // This prevents email enumeration attacks
+  await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${request.nextUrl.origin}/auth/reset-password`,
   });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
 
   return NextResponse.json({ success: true });
 }
