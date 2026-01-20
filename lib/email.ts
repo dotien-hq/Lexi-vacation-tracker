@@ -14,6 +14,138 @@ interface EmailResult {
   error?: string;
 }
 
+interface EmailTheme {
+  accentColor: string;
+  cardBackground: string;
+  cardBorderColor: string;
+  headerGradientEnd?: string;
+}
+
+interface EmailCTA {
+  text: string;
+  url: string;
+}
+
+/**
+ * Generate premium email template with Lexi branding
+ * @param content Main body HTML content
+ * @param theme Color theme for accents and cards
+ * @param cta Optional call-to-action button
+ * @returns Complete HTML email template
+ */
+function generateEmailTemplate(content: string, theme: EmailTheme, cta?: EmailCTA): string {
+  const headerGradient = theme.headerGradientEnd
+    ? `linear-gradient(90deg, #0041F0 0%, ${theme.headerGradientEnd} 100%)`
+    : 'linear-gradient(90deg, #0041F0 0%, #60A5FA 100%)';
+
+  const ctaHtml = cta
+    ? `
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="${cta.url}" style="
+        display: inline-block;
+        padding: 16px 32px;
+        background: linear-gradient(90deg, #0041F0 0%, #3B82F6 100%);
+        background-color: #0041F0;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        box-shadow: 0 2px 4px rgba(0, 65, 240, 0.2);
+      ">${cta.text}</a>
+    </div>
+    <p style="text-align: center; font-size: 14px; color: #64748B; margin-top: 16px;">
+      Or copy this link: <a href="${cta.url}" style="color: #0041F0; word-break: break-all;">${cta.url}</a>
+    </p>
+  `
+    : '';
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Lexi Vacation Tracker</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td align="center" style="padding: 40px 20px;">
+            <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);">
+              <!-- Header with gradient and decorations -->
+              <tr>
+                <td style="position: relative; background: ${headerGradient}; background-color: #0041F0; padding: 24px 40px; text-align: center; height: 80px;">
+                  <!-- Decorative circles -->
+                  <div style="position: absolute; top: -40px; right: 60px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); pointer-events: none;"></div>
+                  <div style="position: absolute; top: 20px; right: 200px; width: 80px; height: 80px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); pointer-events: none;"></div>
+                  <div style="position: absolute; bottom: -30px; right: 150px; width: 100px; height: 100px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); pointer-events: none;"></div>
+
+                  <!-- Branding -->
+                  <div style="position: relative; z-index: 1;">
+                    <div style="color: white; font-size: 28px; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 4px;">LEXI</div>
+                    <div style="color: white; opacity: 0.9; font-size: 14px;">Vacation Tracker</div>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Content area -->
+              <tr>
+                <td style="padding: 40px; color: #475569; font-size: 16px; line-height: 1.6;">
+                  ${content}
+                  ${ctaHtml}
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td style="padding: 0 40px 24px;">
+                  <div style="height: 1px; background: linear-gradient(90deg, #0041F0 0%, transparent 100%); margin-bottom: 16px;"></div>
+                  <div style="text-align: center; color: #94A3B8; font-size: 14px;">Lexi Vacation Tracker</div>
+                </td>
+              </tr>
+
+              <!-- Bottom gradient bar -->
+              <tr>
+                <td style="height: 4px; background: linear-gradient(90deg, #0041F0 0%, #60A5FA 100%); background-color: #0041F0;"></td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * Generate a data card for displaying key-value pairs
+ * @param items Array of label-value pairs
+ * @param theme Theme colors for card styling
+ * @returns HTML for data card
+ */
+function generateDataCard(
+  items: Array<{ label: string; value: string }>,
+  theme: EmailTheme
+): string {
+  const rows = items
+    .map(
+      (item) => `
+    <div style="margin-bottom: 12px;">
+      <div style="color: #64748B; font-size: 14px; font-weight: 500; margin-bottom: 4px;">${item.label}</div>
+      <div style="color: #1E293B; font-size: 14px; font-weight: 600;">${item.value}</div>
+    </div>
+  `
+    )
+    .join('');
+
+  return `
+    <div style="background: ${theme.cardBackground}; border-left: 4px solid ${theme.cardBorderColor}; border-radius: 6px; padding: 20px; margin: 24px 0;">
+      ${rows}
+    </div>
+  `;
+}
+
 /**
  * Check if email service is properly configured
  * @returns true if configured, false otherwise
@@ -71,20 +203,30 @@ export async function sendInvitationEmail(email: string, fullName: string): Prom
   }
 
   try {
+    const theme: EmailTheme = {
+      accentColor: '#0041F0',
+      cardBackground: '#F0F7FF',
+      cardBorderColor: '#0041F0',
+    };
+
+    const content = `
+      <h2 style="color: #0F172A; font-size: 24px; font-weight: 600; margin: 0 0 16px;">Welcome to Lexi Vacation Tracker</h2>
+      <p style="margin: 16px 0;">Hello <strong style="color: #1E293B;">${fullName}</strong>,</p>
+      <p style="margin: 16px 0;">You have been invited to join Lexi Vacation Tracker! Your account has been created and is ready to use.</p>
+      <p style="margin: 16px 0;">Click the button below to access your account and get started.</p>
+    `;
+
+    const html = generateEmailTemplate(content, theme, {
+      text: 'Access Your Account',
+      url: `${appUrl}/login`,
+    });
+
     const msg = {
       to: email,
       from: fromEmail,
       subject: 'Welcome to Lexi Vacation Tracker',
       text: `Hello ${fullName},\n\nYou have been invited to join Lexi Vacation Tracker!\n\nPlease visit ${appUrl}/login to access your account using your email address.\n\nBest regards,\nLexi Vacation Tracker Team`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #0041F0;">Welcome to Lexi Vacation Tracker</h2>
-          <p>Hello <strong>${fullName}</strong>,</p>
-          <p>You have been invited to join Lexi Vacation Tracker!</p>
-          <p>Please visit <a href="${appUrl}/login" style="color: #0041F0;">${appUrl}/login</a> to access your account using your email address.</p>
-          <p>Best regards,<br/>Lexi Vacation Tracker Team</p>
-        </div>
-      `,
+      html,
     };
 
     await sgMail.send(msg);
@@ -151,38 +293,40 @@ export async function sendRequestNotificationEmail(
       day: 'numeric',
     });
 
+    const theme: EmailTheme = {
+      accentColor: '#0041F0',
+      cardBackground: '#F0F7FF',
+      cardBorderColor: '#0041F0',
+    };
+
+    const dataCard = generateDataCard(
+      [
+        { label: 'Requester', value: userName },
+        { label: 'Start Date', value: formattedStartDate },
+        { label: 'End Date', value: formattedEndDate },
+        { label: 'Business Days', value: `${daysCount} ${daysCount === 1 ? 'day' : 'days'}` },
+      ],
+      theme
+    );
+
+    const content = `
+      <h2 style="color: #0F172A; font-size: 24px; font-weight: 600; margin: 0 0 16px;">New Leave Request</h2>
+      <p style="margin: 16px 0;">A new leave request has been submitted and requires your review.</p>
+      ${dataCard}
+      <p style="margin: 16px 0;">Please review and approve or deny this request.</p>
+    `;
+
+    const html = generateEmailTemplate(content, theme, {
+      text: 'Review Request',
+      url: `${appUrl}/admin/requests`,
+    });
+
     const msg = {
       to: adminEmails,
       from: fromEmail,
       subject: `New Leave Request from ${userName}`,
       text: `A new leave request has been submitted.\n\nUser: ${userName}\nStart Date: ${formattedStartDate}\nEnd Date: ${formattedEndDate}\nBusiness Days: ${daysCount}\n\nPlease review and approve or deny this request at ${appUrl}/admin/requests`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #0041F0;">New Leave Request</h2>
-          <p>A new leave request has been submitted.</p>
-          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-            <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>User:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;">${userName}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Start Date:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;">${formattedStartDate}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>End Date:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;">${formattedEndDate}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Business Days:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;">${daysCount}</td>
-            </tr>
-          </table>
-          <p>
-            <a href="${appUrl}/admin/requests" style="display: inline-block; padding: 12px 24px; background-color: #0041F0; color: white; text-decoration: none; border-radius: 6px;">Review Request</a>
-          </p>
-        </div>
-      `,
+      html,
     };
 
     await sgMail.send(msg);
@@ -232,34 +376,38 @@ export async function sendApprovalEmail(
       day: 'numeric',
     });
 
+    const theme: EmailTheme = {
+      accentColor: '#10B981',
+      cardBackground: '#F0FDF4',
+      cardBorderColor: '#10B981',
+      headerGradientEnd: '#5EEAD4', // Subtle green warmth
+    };
+
+    const dataCard = generateDataCard(
+      [
+        { label: 'Start Date', value: formattedStartDate },
+        { label: 'End Date', value: formattedEndDate },
+        { label: 'Business Days', value: `${daysCount} ${daysCount === 1 ? 'day' : 'days'}` },
+      ],
+      theme
+    );
+
+    const content = `
+      <h2 style="color: #0F172A; font-size: 24px; font-weight: 600; margin: 0 0 16px;">Leave Request Approved ✓</h2>
+      <p style="margin: 16px 0;">Hello <strong style="color: #1E293B;">${userName}</strong>,</p>
+      <p style="margin: 16px 0;">Great news! Your leave request has been approved.</p>
+      ${dataCard}
+      <p style="margin: 24px 0; color: #10B981; font-weight: 600; font-size: 18px;">Enjoy your time off!</p>
+    `;
+
+    const html = generateEmailTemplate(content, theme);
+
     const msg = {
       to: email,
       from: fromEmail,
       subject: 'Leave Request Approved',
       text: `Hello ${userName},\n\nYour leave request has been approved!\n\nStart Date: ${formattedStartDate}\nEnd Date: ${formattedEndDate}\nBusiness Days: ${daysCount}\n\nEnjoy your time off!\n\nBest regards,\nLexi Vacation Tracker Team`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #0041F0;">Leave Request Approved ✓</h2>
-          <p>Hello <strong>${userName}</strong>,</p>
-          <p>Your leave request has been approved!</p>
-          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-            <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Start Date:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;">${formattedStartDate}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>End Date:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;">${formattedEndDate}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Business Days:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;">${daysCount}</td>
-            </tr>
-          </table>
-          <p style="color: #059669; font-weight: bold;">Enjoy your time off!</p>
-          <p>Best regards,<br/>Lexi Vacation Tracker Team</p>
-        </div>
-      `,
+      html,
     };
 
     await sgMail.send(msg);
@@ -311,38 +459,38 @@ export async function sendDenialEmail(
       day: 'numeric',
     });
 
+    const theme: EmailTheme = {
+      accentColor: '#F87171',
+      cardBackground: '#FEF2F2',
+      cardBorderColor: '#F87171',
+    };
+
+    const dataCard = generateDataCard(
+      [
+        { label: 'Start Date', value: formattedStartDate },
+        { label: 'End Date', value: formattedEndDate },
+        { label: 'Business Days', value: `${daysCount} ${daysCount === 1 ? 'day' : 'days'}` },
+        { label: 'Reason', value: rejectionReason },
+      ],
+      theme
+    );
+
+    const content = `
+      <h2 style="color: #0F172A; font-size: 24px; font-weight: 600; margin: 0 0 16px;">Leave Request Update</h2>
+      <p style="margin: 16px 0;">Hello <strong style="color: #1E293B;">${userName}</strong>,</p>
+      <p style="margin: 16px 0;">Your leave request has been reviewed and unfortunately cannot be approved at this time.</p>
+      ${dataCard}
+      <p style="margin: 16px 0; color: #64748B;">If you have questions or would like to discuss this further, please contact your administrator.</p>
+    `;
+
+    const html = generateEmailTemplate(content, theme);
+
     const msg = {
       to: email,
       from: fromEmail,
-      subject: 'Leave Request Denied',
+      subject: 'Leave Request Update',
       text: `Hello ${userName},\n\nYour leave request has been denied.\n\nStart Date: ${formattedStartDate}\nEnd Date: ${formattedEndDate}\nBusiness Days: ${daysCount}\n\nReason: ${rejectionReason}\n\nIf you have questions, please contact your administrator.\n\nBest regards,\nLexi Vacation Tracker Team`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #DC2626;">Leave Request Denied</h2>
-          <p>Hello <strong>${userName}</strong>,</p>
-          <p>Your leave request has been denied.</p>
-          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-            <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Start Date:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;">${formattedStartDate}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>End Date:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;">${formattedEndDate}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Business Days:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;">${daysCount}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Reason:</strong></td>
-              <td style="padding: 8px; border-bottom: 1px solid #ddd;">${rejectionReason}</td>
-            </tr>
-          </table>
-          <p>If you have questions, please contact your administrator.</p>
-          <p>Best regards,<br/>Lexi Vacation Tracker Team</p>
-        </div>
-      `,
+      html,
     };
 
     await sgMail.send(msg);
@@ -380,26 +528,31 @@ export async function sendInvitationEmailWithToken(
   try {
     const inviteUrl = `${appUrl}/auth/accept?token=${token}`;
 
+    const theme: EmailTheme = {
+      accentColor: '#0041F0',
+      cardBackground: '#F0F7FF',
+      cardBorderColor: '#0041F0',
+    };
+
+    const content = `
+      <h2 style="color: #0F172A; font-size: 24px; font-weight: 600; margin: 0 0 16px;">You're Invited!</h2>
+      <p style="margin: 16px 0;">Hello <strong style="color: #1E293B;">${fullName}</strong>,</p>
+      <p style="margin: 16px 0;"><strong style="color: #1E293B;">${adminName}</strong> has invited you to join Lexi Vacation Tracker.</p>
+      <p style="margin: 16px 0;">Click the button below to accept your invitation and set your password.</p>
+      <p style="margin: 24px 0; color: #64748B; font-size: 14px;">⏱ This invitation will expire in 7 days.</p>
+    `;
+
+    const html = generateEmailTemplate(content, theme, {
+      text: 'Accept Invitation',
+      url: inviteUrl,
+    });
+
     const msg = {
       to: email,
       from: fromEmail,
       subject: "You're invited to Lexi Vacation Tracker",
       text: `Hello ${fullName},\n\n${adminName} has invited you to join Lexi Vacation Tracker.\n\nClick the link below to accept your invitation and set your password:\n${inviteUrl}\n\nThis invitation will expire in 7 days.\n\nBest regards,\nLexi Vacation Tracker Team`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #0041F0;">You're Invited!</h2>
-          <p>Hello <strong>${fullName}</strong>,</p>
-          <p><strong>${adminName}</strong> has invited you to join Lexi Vacation Tracker.</p>
-          <p>Click the button below to accept your invitation and set your password:</p>
-          <p style="margin: 30px 0;">
-            <a href="${inviteUrl}" style="display: inline-block; padding: 12px 24px; background-color: #0041F0; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Accept Invitation</a>
-          </p>
-          <p style="color: #666; font-size: 14px;">This invitation will expire in 7 days.</p>
-          <p style="color: #666; font-size: 14px;">If the button doesn't work, copy and paste this link:<br/>
-          <a href="${inviteUrl}" style="color: #0041F0;">${inviteUrl}</a></p>
-          <p>Best regards,<br/>Lexi Vacation Tracker Team</p>
-        </div>
-      `,
+      html,
     };
 
     await sgMail.send(msg);
@@ -435,26 +588,31 @@ export async function sendReinviteEmail(
   try {
     const inviteUrl = `${appUrl}/auth/accept?token=${token}`;
 
+    const theme: EmailTheme = {
+      accentColor: '#0041F0',
+      cardBackground: '#F0F7FF',
+      cardBorderColor: '#0041F0',
+    };
+
+    const content = `
+      <h2 style="color: #0F172A; font-size: 24px; font-weight: 600; margin: 0 0 16px;">Complete Your Setup</h2>
+      <p style="margin: 16px 0;">Hello <strong style="color: #1E293B;">${fullName}</strong>,</p>
+      <p style="margin: 16px 0;">This is a friendly reminder to complete your Lexi Vacation Tracker setup.</p>
+      <p style="margin: 16px 0;">Click the button below to accept your invitation and set your password.</p>
+      <p style="margin: 24px 0; color: #64748B; font-size: 14px;">⏱ This invitation will expire in 7 days.</p>
+    `;
+
+    const html = generateEmailTemplate(content, theme, {
+      text: 'Complete Setup',
+      url: inviteUrl,
+    });
+
     const msg = {
       to: email,
       from: fromEmail,
       subject: 'Reminder: Complete your Lexi Vacation Tracker setup',
       text: `Hello ${fullName},\n\nThis is a reminder to complete your Lexi Vacation Tracker setup.\n\nClick the link below to accept your invitation and set your password:\n${inviteUrl}\n\nThis invitation will expire in 7 days.\n\nBest regards,\nLexi Vacation Tracker Team`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #0041F0;">Complete Your Setup</h2>
-          <p>Hello <strong>${fullName}</strong>,</p>
-          <p>This is a reminder to complete your Lexi Vacation Tracker setup.</p>
-          <p>Click the button below to accept your invitation and set your password:</p>
-          <p style="margin: 30px 0;">
-            <a href="${inviteUrl}" style="display: inline-block; padding: 12px 24px; background-color: #0041F0; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Complete Setup</a>
-          </p>
-          <p style="color: #666; font-size: 14px;">This invitation will expire in 7 days.</p>
-          <p style="color: #666; font-size: 14px;">If the button doesn't work, copy and paste this link:<br/>
-          <a href="${inviteUrl}" style="color: #0041F0;">${inviteUrl}</a></p>
-          <p>Best regards,<br/>Lexi Vacation Tracker Team</p>
-        </div>
-      `,
+      html,
     };
 
     await sgMail.send(msg);
