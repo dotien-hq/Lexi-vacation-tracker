@@ -142,6 +142,73 @@ function generateDataCard(
 }
 
 /**
+ * Format date as YYYYMMDD for Google Calendar
+ */
+function formatDateForGoogle(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}${month}${day}`;
+}
+
+/**
+ * Add days to a date
+ */
+function addDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+interface CalendarLinks {
+  google: string;
+}
+
+/**
+ * Generate "Add to Calendar" link for approved leave
+ * @param userName User's name for the event title
+ * @param startDate Leave start date
+ * @param endDate Leave end date
+ * @returns Object with Google calendar link
+ */
+function generateCalendarLinks(userName: string, startDate: Date, endDate: Date): CalendarLinks {
+  const eventTitle = encodeURIComponent(`${userName} - Time Off`);
+  const eventDescription = encodeURIComponent('Approved leave from Lexi Vacation Tracker');
+
+  // Google Calendar - for all-day events, end date is exclusive (add 1 day)
+  const googleStart = formatDateForGoogle(startDate);
+  const googleEnd = formatDateForGoogle(addDays(endDate, 1));
+  const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&dates=${googleStart}/${googleEnd}&details=${eventDescription}`;
+
+  return {
+    google: googleUrl,
+  };
+}
+
+/**
+ * Generate HTML section for "Add to Calendar" button
+ * @param links Calendar links object
+ * @returns HTML string for the calendar button section
+ */
+function generateCalendarButtonsSection(links: CalendarLinks): string {
+  return `
+    <div style="margin: 24px 0; padding: 20px; background: #F8FAFC; border-radius: 8px; text-align: center;">
+      <p style="margin: 0 0 16px; color: #475569; font-size: 14px; font-weight: 500;">Add to your calendar:</p>
+      <a href="${links.google}" target="_blank" style="
+        display: inline-block;
+        padding: 12px 24px;
+        background: #4285F4;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+      ">📅 Google Calendar</a>
+    </div>
+  `;
+}
+
+/**
  * Check if email service is properly configured
  * @returns true if configured, false otherwise
  */
@@ -371,6 +438,10 @@ export async function sendApprovalEmail(
       day: 'numeric',
     });
 
+    // Generate calendar links for easy event adding
+    const calendarLinks = generateCalendarLinks(userName, startDate, endDate);
+    const calendarButtonsHtml = generateCalendarButtonsSection(calendarLinks);
+
     const theme: EmailTheme = {
       accentColor: '#10B981',
       cardBackground: '#F0FDF4',
@@ -392,6 +463,7 @@ export async function sendApprovalEmail(
       <p style="margin: 16px 0;">Hello <strong style="color: #1E293B;">${userName}</strong>,</p>
       <p style="margin: 16px 0;">Great news! Your leave request has been approved.</p>
       ${dataCard}
+      ${calendarButtonsHtml}
       <p style="margin: 24px 0; color: #10B981; font-weight: 600; font-size: 18px;">Enjoy your time off!</p>
     `;
 
@@ -401,7 +473,7 @@ export async function sendApprovalEmail(
       to: email,
       from: fromEmail,
       subject: 'Leave Request Approved',
-      text: `Hello ${userName},\n\nYour leave request has been approved!\n\nStart Date: ${formattedStartDate}\nEnd Date: ${formattedEndDate}\nBusiness Days: ${daysCount}\n\nEnjoy your time off!\n\nBest regards,\nLexi Vacation Tracker Team`,
+      text: `Hello ${userName},\n\nYour leave request has been approved!\n\nStart Date: ${formattedStartDate}\nEnd Date: ${formattedEndDate}\nBusiness Days: ${daysCount}\n\nAdd to Google Calendar: ${calendarLinks.google}\n\nEnjoy your time off!\n\nBest regards,\nLexi Vacation Tracker Team`,
       html,
     };
 
