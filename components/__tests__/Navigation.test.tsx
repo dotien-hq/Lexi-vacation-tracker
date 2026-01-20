@@ -13,8 +13,6 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/dashboard',
 }));
 
-global.fetch = vi.fn();
-
 describe('Navigation Logout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -35,6 +33,7 @@ describe('Navigation Logout', () => {
         updatedAt: new Date(),
       },
       loading: false,
+      signOut: vi.fn(),
     });
 
     render(<Navigation />);
@@ -42,8 +41,9 @@ describe('Navigation Logout', () => {
     expect(screen.getByText('Odjavi se')).toBeInTheDocument();
   });
 
-  it('should call logout endpoint and redirect on logout click', async () => {
+  it('should call signOut and redirect on logout click', async () => {
     const mockPush = vi.fn();
+    const mockSignOut = vi.fn().mockResolvedValue(undefined);
 
     vi.mocked(useAuth).mockReturnValue({
       user: { id: '123', email: 'user@example.com' } as unknown as User,
@@ -59,12 +59,8 @@ describe('Navigation Logout', () => {
         updatedAt: new Date(),
       },
       loading: false,
+      signOut: mockSignOut,
     });
-
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({ success: true }),
-    } as unknown as Response);
 
     const useRouter = await import('next/navigation');
     vi.spyOn(useRouter, 'useRouter').mockReturnValue({
@@ -78,9 +74,7 @@ describe('Navigation Logout', () => {
     fireEvent.click(screen.getByText('Odjavi se'));
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('/api/auth/logout', {
-        method: 'POST',
-      });
+      expect(mockSignOut).toHaveBeenCalled();
       expect(mockPush).toHaveBeenCalledWith('/login');
     });
   });

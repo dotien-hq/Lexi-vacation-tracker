@@ -9,11 +9,11 @@ import { useAuth } from '@/lib/auth-context';
 export default function Navigation() {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, loading } = useAuth();
+  const { profile, loading, signOut } = useAuth();
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await signOut();
       router.push('/login');
     } catch (error) {
       console.error('Logout failed:', error);

@@ -45,10 +45,8 @@ export async function middleware(req: NextRequest) {
 
   // IMPORTANT: Do not run code between createServerClient and getClaims()
   // Check for valid Supabase session using getClaims (recommended by Supabase)
-  const {
-    data: { claims },
-    error: claimsError,
-  } = await supabase.auth.getClaims();
+  const { data, error: claimsError } = await supabase.auth.getClaims();
+  const claims = data?.claims;
 
   // No valid session - redirect to login
   if (claimsError || !claims?.sub) {
@@ -63,7 +61,7 @@ export async function middleware(req: NextRequest) {
   if (isAdminRoute) {
     // Verify user has admin role using Supabase query (works in Edge runtime)
     const { data: profile } = await supabase
-      .from('profiles')
+      .from('Profile')
       .select('role, status')
       .or(`authUserId.eq.${claims.sub},email.eq.${claims.email}`)
       .eq('status', 'ACTIVE')
