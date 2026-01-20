@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, CalendarDays, Clock, Send, CheckCircle, XCircle } from 'lucide-react';
+import { AlertCircle, CalendarDays, Clock, Send, CheckCircle, XCircle, User } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase';
 import { calculateBusinessDays } from '@/lib/holidayCalculator';
 import { calculateAvailableDays, hasSufficientBalance } from '@/lib/vacationBalance';
@@ -25,6 +25,11 @@ interface LeaveRequest {
   status: 'REQUESTED' | 'APPROVED' | 'DENIED';
   rejectionReason: string | null;
   createdAt: string;
+  profile?: {
+    id: string;
+    email: string;
+    fullName: string | null;
+  };
 }
 
 export default function DashboardPage() {
@@ -367,6 +372,12 @@ export default function DashboardPage() {
                           })}
                         </span>
                       </div>
+                      {profile.role === 'ADMIN' && request.profile && (
+                        <p className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-1">
+                          <User size={16} className="text-slate-400" />
+                          {request.profile.fullName || request.profile.email}
+                        </p>
+                      )}
                       <p className="text-sm font-medium text-slate-700 flex items-center gap-2">
                         <CalendarDays size={16} className="text-slate-400" />
                         {new Date(request.startDate).toLocaleDateString('en-US', {
