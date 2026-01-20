@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from '../logout/route';
 import { createServerSupabaseClient } from '@/lib/supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 vi.mock('@/lib/supabase');
 
@@ -13,7 +14,7 @@ describe('POST /api/auth/logout', () => {
     const mockSignOut = vi.fn().mockResolvedValue({ error: null });
     vi.mocked(createServerSupabaseClient).mockResolvedValue({
       auth: { signOut: mockSignOut },
-    } as any);
+    } as unknown as SupabaseClient);
 
     const response = await POST();
     const data = await response.json();
@@ -29,7 +30,7 @@ describe('POST /api/auth/logout', () => {
     });
     vi.mocked(createServerSupabaseClient).mockResolvedValue({
       auth: { signOut: mockSignOut },
-    } as any);
+    } as unknown as SupabaseClient);
 
     const response = await POST();
     const data = await response.json();
