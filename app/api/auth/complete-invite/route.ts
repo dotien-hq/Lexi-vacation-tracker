@@ -3,23 +3,22 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { hashToken, isTokenExpired } from '@/lib/tokens';
+import { withRateLimit, RATE_LIMITS } from '@/lib/rateLimit';
+import { parseBody, validationError, completeInviteSchema } from '@/lib/validations';
 
 export async function POST(request: NextRequest) {
+  // Rate limiting (strict for auth)
+  const rateLimitResponse = withRateLimit(request, RATE_LIMITS.auth, 'complete-invite');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
-    const body = await request.json();
-    const { token, password } = body;
-
     // Validate input
-    if (!token || typeof token !== 'string') {
-      return NextResponse.json({ error: 'Token is required' }, { status: 400 });
+    const parsed = await parseBody(request, completeInviteSchema);
+    if (!parsed.success) {
+      return NextResponse.json(validationError(parsed.error), { status: 400 });
     }
 
-    if (!password || typeof password !== 'string' || password.length < 8) {
-      return NextResponse.json(
-        { error: 'Password must be at least 8 characters' },
-        { status: 400 }
-      );
-    }
+    const { token, password } = parsed.data;
 
     // Hash the token to find profile
     const tokenHash = hashToken(token);
@@ -56,9 +55,9 @@ export async function POST(request: NextRequest) {
           getAll() {
             return cookieStore.getAll();
           },
-          setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>) {
+          setAll(cookiesToSet: Array<{ name: string; value: string; options: unknown }>) {
             cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
+              cookieStore.set(name, value, options as Parameters<typeof cookieStore.set>[2]);
             });
           },
         },

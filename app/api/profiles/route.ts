@@ -4,9 +4,15 @@ import { Role } from '@prisma/client';
 import { sendInvitationEmailWithToken } from '@/lib/email';
 import { getAuthenticatedProfile } from '@/lib/auth';
 import { generateInvitationToken, hashToken, generateInvitationExpiry } from '@/lib/tokens';
+import { withRateLimit, RATE_LIMITS } from '@/lib/rateLimit';
+import { parseBody, validationError, createProfileSchema } from '@/lib/validations';
 
 // GET /api/profiles - List all profiles (admin only)
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = withRateLimit(request, RATE_LIMITS.api, 'profiles-list');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Check authentication
     const userProfile = await getAuthenticatedProfile();
@@ -54,6 +60,10 @@ export async function GET() {
 
 // POST /api/profiles - Create new profile and send invitation (admin only)
 export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = withRateLimit(request, RATE_LIMITS.api, 'profiles-create');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Check authentication
     const userProfile = await getAuthenticatedProfile();
@@ -66,24 +76,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    // Parse and validate request body
-    const body = await request.json();
-    const { email, fullName, daysCarryOver, daysCurrentYear, role } = body;
-
-    if (!email) {
-      return NextResponse.json({ error: 'Missing required field: email' }, { status: 400 });
+    // Validate input
+    const parsed = await parseBody(request, createProfileSchema);
+    if (!parsed.success) {
+      return NextResponse.json(validationError(parsed.error), { status: 400 });
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
-    }
-
-    // Validate role if provided
-    if (role && !['USER', 'ADMIN'].includes(role)) {
-      return NextResponse.json({ error: 'Invalid role. Must be USER or ADMIN' }, { status: 400 });
-    }
+    const { email, fullName, role, daysCarryOver, daysCurrentYear } = parsed.data;
 
     // Check if profile already exists
     const existingProfile = await prisma.profile.findUnique({
@@ -107,9 +106,9 @@ export async function POST(request: NextRequest) {
       data: {
         email,
         fullName: fullName || null,
-        role: (role as Role) || Role.USER,
-        daysCurrentYear: daysCurrentYear ?? 20,
-        daysCarryOver: daysCarryOver ?? 0,
+        role: role as Role,
+        daysCurrentYear,
+        daysCarryOver,
         status: 'PENDING',
         invitationToken: tokenHash,
         invitationExpiresAt: expiresAt,

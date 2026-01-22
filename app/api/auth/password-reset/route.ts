@@ -1,43 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase';
-
-type PasswordResetRequest = {
-  email: string;
-};
+import { withRateLimit, RATE_LIMITS } from '@/lib/rateLimit';
+import { parseBody, validationError, passwordResetSchema } from '@/lib/validations';
 
 export async function POST(request: NextRequest) {
-  let email: string;
+  // Rate limiting (strict for auth)
+  const rateLimitResponse = withRateLimit(request, RATE_LIMITS.auth, 'password-reset');
+  if (rateLimitResponse) return rateLimitResponse;
 
-  try {
-    const body = (await request.json()) as PasswordResetRequest;
-    email = body.email;
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  // Validate input
+  const parsed = await parseBody(request, passwordResetSchema);
+  if (!parsed.success) {
+    return NextResponse.json(validationError(parsed.error), { status: 400 });
   }
 
-  // Check if email exists
-  if (!email) {
-    return NextResponse.json({ error: 'Email is required' }, { status: 400 });
-  }
-
-  // Check if email is string
-  if (typeof email !== 'string') {
-    return NextResponse.json({ error: 'Email must be a string' }, { status: 400 });
-  }
-
-  // Trim whitespace
-  email = email.trim();
-
-  // Check if empty after trim
-  if (!email) {
-    return NextResponse.json({ error: 'Email is required' }, { status: 400 });
-  }
-
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
-  }
+  const { email } = parsed.data;
 
   const supabase = await createServerSupabaseClient();
 

@@ -68,7 +68,7 @@ describe('Middleware Role Protection Logic', () => {
     expect(mockGetClaims).toHaveBeenCalled();
 
     // Verify role check was performed
-    expect(mockFrom).toHaveBeenCalledWith('profiles');
+    expect(mockFrom).toHaveBeenCalledWith('Profile');
     expect(mockSelect).toHaveBeenCalledWith('role, status');
     expect(mockOr).toHaveBeenCalledWith('authUserId.eq.user-123,email.eq.admin@example.com');
     expect(mockEq).toHaveBeenCalledWith('status', 'ACTIVE');
@@ -129,7 +129,7 @@ describe('Middleware Role Protection Logic', () => {
 
     // Verify the role check happened
     expect(mockGetClaims).toHaveBeenCalled();
-    expect(mockFrom).toHaveBeenCalledWith('profiles');
+    expect(mockFrom).toHaveBeenCalledWith('Profile');
     expect(mockOr).toHaveBeenCalledWith('authUserId.eq.user-456,email.eq.user@example.com');
   });
 

@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from '../route';
 import { prisma } from '@/lib/prisma';
+import { clearRateLimitStore } from '@/lib/rateLimit';
+import { NextRequest } from 'next/server';
 
 // Mock dependencies
 vi.mock('@/lib/prisma', () => ({
@@ -20,13 +22,21 @@ vi.mock('@/lib/supabase', () => ({
   createServerSupabaseClient: vi.fn(),
 }));
 
+vi.mock('next/headers', () => ({
+  cookies: vi.fn().mockResolvedValue({
+    getAll: vi.fn().mockReturnValue([]),
+    set: vi.fn(),
+  }),
+}));
+
 describe('POST /api/auth/complete-invite', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearRateLimitStore();
   });
 
   it('should reject request with missing token', async () => {
-    const request = new Request('http://localhost/api/auth/complete-invite', {
+    const request = new NextRequest('http://localhost/api/auth/complete-invite', {
       method: 'POST',
       body: JSON.stringify({ password: 'test12345' }),
     });
@@ -35,11 +45,12 @@ describe('POST /api/auth/complete-invite', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toContain('Token');
+    expect(data.error).toBe('Validation failed');
+    expect(data.details.fieldErrors.token).toBeDefined();
   });
 
   it('should reject request with missing password', async () => {
-    const request = new Request('http://localhost/api/auth/complete-invite', {
+    const request = new NextRequest('http://localhost/api/auth/complete-invite', {
       method: 'POST',
       body: JSON.stringify({ token: 'abc123' }),
     });
@@ -48,13 +59,14 @@ describe('POST /api/auth/complete-invite', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toContain('Password');
+    expect(data.error).toBe('Validation failed');
+    expect(data.details.fieldErrors.password).toBeDefined();
   });
 
   it('should reject invalid token', async () => {
     vi.mocked(prisma.profile.findUnique).mockResolvedValue(null);
 
-    const request = new Request('http://localhost/api/auth/complete-invite', {
+    const request = new NextRequest('http://localhost/api/auth/complete-invite', {
       method: 'POST',
       body: JSON.stringify({ token: 'invalid-token', password: 'test12345' }),
     });
@@ -87,7 +99,7 @@ describe('POST /api/auth/complete-invite', () => {
       updatedAt: new Date(),
     } as any);
 
-    const request = new Request('http://localhost/api/auth/complete-invite', {
+    const request = new NextRequest('http://localhost/api/auth/complete-invite', {
       method: 'POST',
       body: JSON.stringify({ token: 'valid-token', password: 'test12345' }),
     });

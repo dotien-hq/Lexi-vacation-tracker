@@ -3,8 +3,13 @@ import { prisma } from '@/lib/prisma';
 import { getAuthenticatedProfile } from '@/lib/auth';
 import { sendReinviteEmail } from '@/lib/email';
 import { generateInvitationToken, hashToken, generateInvitationExpiry } from '@/lib/tokens';
+import { withRateLimit, RATE_LIMITS } from '@/lib/rateLimit';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const rateLimitResponse = withRateLimit(request, RATE_LIMITS.api, 'profiles-reinvite');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Verify admin authentication
     const adminProfile = await getAuthenticatedProfile();

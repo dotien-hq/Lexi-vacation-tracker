@@ -5,9 +5,19 @@ import { calculateBusinessDays } from '@/lib/holidayCalculator';
 import { hasSufficientBalance, deductDays, refundDays } from '@/lib/vacationBalance';
 import { sendApprovalEmail, sendDenialEmail } from '@/lib/email';
 import { getAuthenticatedProfile } from '@/lib/auth';
+import { withRateLimit, RATE_LIMITS } from '@/lib/rateLimit';
+import {
+  validationError,
+  updateRequestStatusSchema,
+  updateRequestDatesSchema,
+} from '@/lib/validations';
 
 // PATCH /api/requests/[id] - Update leave request (status or dates)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const rateLimitResponse = withRateLimit(request, RATE_LIMITS.api, 'requests-update');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Check authentication
     const userProfile = await getAuthenticatedProfile();
@@ -31,13 +41,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'Resource not found' }, { status: 404 });
     }
 
-    // Parse request body
-    const body = await request.json();
-    const { status, rejectionReason, startDate, endDate } = body;
+    // Parse request body to determine update type
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
 
     // Determine if this is a status update (admin) or date update (user)
-    const isStatusUpdate = status !== undefined;
-    const isDateUpdate = startDate !== undefined || endDate !== undefined;
+    const isStatusUpdate = body.status !== undefined;
+    const isDateUpdate = body.startDate !== undefined || body.endDate !== undefined;
 
     if (isStatusUpdate && isDateUpdate) {
       return NextResponse.json(
@@ -53,10 +67,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
       }
 
-      // Validate status value
-      if (!Object.values(RequestStatus).includes(status)) {
-        return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
+      // Validate status input
+      const statusResult = updateRequestStatusSchema.safeParse(body);
+      if (!statusResult.success) {
+        return NextResponse.json(validationError(statusResult.error), { status: 400 });
       }
+
+      const { status, rejectionReason } = statusResult.data;
 
       // Validate status transitions
       if (existingRequest.status !== RequestStatus.REQUESTED) {
@@ -150,7 +167,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             existingRequest.startDate,
             existingRequest.endDate,
             existingRequest.daysCount,
-            rejectionReason
+            rejectionReason!
           );
         } catch (emailError) {
           // Log error but don't fail the request
@@ -163,6 +180,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     // Handle date update (user only, only for REQUESTED status)
     if (isDateUpdate) {
+      // Validate date input
+      const datesResult = updateRequestDatesSchema.safeParse(body);
+      if (!datesResult.success) {
+        return NextResponse.json(validationError(datesResult.error), { status: 400 });
+      }
+
+      const { startDate, endDate } = datesResult.data;
+
       // Check if user owns this request
       if (existingRequest.profileId !== userProfile.id) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 });
@@ -176,15 +201,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       // Use existing dates if not provided
       const newStartDate = startDate ? new Date(startDate) : existingRequest.startDate;
       const newEndDate = endDate ? new Date(endDate) : existingRequest.endDate;
-
-      // Validate dates
-      if (isNaN(newStartDate.getTime()) || isNaN(newEndDate.getTime())) {
-        return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
-      }
-
-      if (newEndDate < newStartDate) {
-        return NextResponse.json({ error: 'End date must be after start date' }, { status: 400 });
-      }
 
       // Calculate new business days
       const newDaysCount = calculateBusinessDays(newStartDate, newEndDate);
@@ -243,6 +259,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Rate limiting
+  const rateLimitResponse = withRateLimit(request, RATE_LIMITS.api, 'requests-delete');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Check authentication
     const userProfile = await getAuthenticatedProfile();

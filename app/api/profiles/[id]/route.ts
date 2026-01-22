@@ -2,9 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@prisma/client';
 import { getAuthenticatedProfile } from '@/lib/auth';
+import { withRateLimit, RATE_LIMITS } from '@/lib/rateLimit';
+import { parseBody, validationError, updateProfileSchema } from '@/lib/validations';
 
 // PATCH /api/profiles/[id] - Update profile (admin only)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Rate limiting
+  const rateLimitResponse = withRateLimit(request, RATE_LIMITS.api, 'profiles-update');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Check authentication
     const userProfile = await getAuthenticatedProfile();
@@ -29,17 +35,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'Resource not found' }, { status: 404 });
     }
 
-    // Parse and validate request body
-    const body = await request.json();
-    const { daysCarryOver, daysCurrentYear, isActive, role, status } = body;
+    // Validate input
+    const parsed = await parseBody(request, updateProfileSchema);
+    if (!parsed.success) {
+      return NextResponse.json(validationError(parsed.error), { status: 400 });
+    }
+
+    const { daysCarryOver, daysCurrentYear, isActive, role, status } = parsed.data;
 
     // Role change protection logic
     if (role && role !== existingProfile.role) {
-      // Validate role value
-      if (!['USER', 'ADMIN'].includes(role)) {
-        return NextResponse.json({ error: 'Invalid role. Must be USER or ADMIN' }, { status: 400 });
-      }
-
       // Protection 1: Prevent self-role change
       if (existingProfile.id === userProfile.id) {
         return NextResponse.json({ error: 'Cannot change your own role' }, { status: 403 });
@@ -73,29 +78,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     } = {};
 
     if (daysCarryOver !== undefined) {
-      if (typeof daysCarryOver !== 'number' || daysCarryOver < 0) {
-        return NextResponse.json(
-          { error: 'daysCarryOver must be a non-negative number' },
-          { status: 400 }
-        );
-      }
       updateData.daysCarryOver = daysCarryOver;
     }
 
     if (daysCurrentYear !== undefined) {
-      if (typeof daysCurrentYear !== 'number' || daysCurrentYear < 0) {
-        return NextResponse.json(
-          { error: 'daysCurrentYear must be a non-negative number' },
-          { status: 400 }
-        );
-      }
       updateData.daysCurrentYear = daysCurrentYear;
     }
 
     if (isActive !== undefined) {
-      if (typeof isActive !== 'boolean') {
-        return NextResponse.json({ error: 'isActive must be a boolean' }, { status: 400 });
-      }
       updateData.isActive = isActive;
     }
 
@@ -104,13 +94,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     if (status !== undefined) {
-      // Validate status value
-      if (!['PENDING', 'ACTIVE', 'DEACTIVATED'].includes(status)) {
-        return NextResponse.json(
-          { error: 'Invalid status. Must be PENDING, ACTIVE, or DEACTIVATED' },
-          { status: 400 }
-        );
-      }
       updateData.status = status;
     }
 

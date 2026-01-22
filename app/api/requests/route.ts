@@ -5,9 +5,15 @@ import { calculateBusinessDays } from '@/lib/holidayCalculator';
 import { hasSufficientBalance } from '@/lib/vacationBalance';
 import { sendRequestNotificationEmail } from '@/lib/email';
 import { getAuthenticatedProfile } from '@/lib/auth';
+import { withRateLimit, RATE_LIMITS } from '@/lib/rateLimit';
+import { parseBody, validationError, createRequestSchema } from '@/lib/validations';
 
 // GET /api/requests - List leave requests (role-based filtering)
 export async function GET(request: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = withRateLimit(request, RATE_LIMITS.api, 'requests-list');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Check authentication
     const userProfile = await getAuthenticatedProfile();
@@ -60,6 +66,10 @@ export async function GET(request: NextRequest) {
 
 // POST /api/requests - Create new leave request
 export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rateLimitResponse = withRateLimit(request, RATE_LIMITS.api, 'requests-create');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Check authentication
     const userProfile = await getAuthenticatedProfile();
@@ -68,29 +78,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Parse and validate request body
-    const body = await request.json();
-    const { startDate, endDate } = body;
-
-    if (!startDate || !endDate) {
-      return NextResponse.json(
-        { error: 'Missing required fields: startDate, endDate' },
-        { status: 400 }
-      );
+    // Validate input
+    const parsed = await parseBody(request, createRequestSchema);
+    if (!parsed.success) {
+      return NextResponse.json(validationError(parsed.error), { status: 400 });
     }
+
+    const { startDate, endDate } = parsed.data;
 
     // Parse dates
     const start = new Date(startDate);
     const end = new Date(endDate);
-
-    // Validate date range
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
-    }
-
-    if (end < start) {
-      return NextResponse.json({ error: 'End date must be after start date' }, { status: 400 });
-    }
 
     // Calculate business days
     const daysCount = calculateBusinessDays(start, end);

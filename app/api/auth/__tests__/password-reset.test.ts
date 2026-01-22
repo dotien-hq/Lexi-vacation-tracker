@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from '../password-reset/route';
 import { createServerSupabaseClient } from '@/lib/supabase';
+import { clearRateLimitStore } from '@/lib/rateLimit';
 import { NextRequest } from 'next/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -9,6 +10,7 @@ vi.mock('@/lib/supabase');
 describe('POST /api/auth/password-reset', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearRateLimitStore();
   });
 
   it('should send password reset email and return success', async () => {
@@ -46,7 +48,8 @@ describe('POST /api/auth/password-reset', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Email is required' });
+    expect(data.error).toBe('Validation failed');
+    expect(data.details.fieldErrors.email).toBeDefined();
   });
 
   it('should return success even when Supabase returns error (prevents email enumeration)', async () => {
@@ -82,7 +85,8 @@ describe('POST /api/auth/password-reset', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Invalid email format' });
+    expect(data.error).toBe('Validation failed');
+    expect(data.details.fieldErrors.email).toContain('Invalid email format');
   });
 
   it('should return 400 for email as non-string type', async () => {
@@ -95,7 +99,7 @@ describe('POST /api/auth/password-reset', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Email must be a string' });
+    expect(data.error).toBe('Validation failed');
   });
 
   it('should return 400 for empty string email', async () => {
@@ -108,7 +112,7 @@ describe('POST /api/auth/password-reset', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Email is required' });
+    expect(data.error).toBe('Validation failed');
   });
 
   it('should return 400 for whitespace-only email', async () => {
@@ -121,7 +125,7 @@ describe('POST /api/auth/password-reset', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Email is required' });
+    expect(data.error).toBe('Validation failed');
   });
 
   it('should return 400 for malformed JSON', async () => {
@@ -134,6 +138,7 @@ describe('POST /api/auth/password-reset', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Invalid request body' });
+    expect(data.error).toBe('Validation failed');
+    expect(data.details.formErrors).toContain('Invalid JSON body');
   });
 });
