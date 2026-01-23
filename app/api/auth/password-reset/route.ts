@@ -20,8 +20,9 @@ export async function POST(request: NextRequest) {
 
   // Always return success, even if email doesn't exist
   // This prevents email enumeration attacks
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${request.nextUrl.origin}/auth/reset-password`,
+    redirectTo: `${appUrl}/auth/reset-password`,
   });
 
   return NextResponse.json({ success: true });
