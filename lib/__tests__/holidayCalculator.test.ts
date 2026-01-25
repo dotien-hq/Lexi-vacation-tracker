@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { calculateBusinessDays } from '../holidayCalculator';
+import {
+  calculateBusinessDays,
+  getHolidaysForMonth,
+  getHolidayByDate,
+  isHoliday,
+} from '../holidayCalculator';
 
 describe('holidayCalculator', () => {
   describe('calculateBusinessDays', () => {
@@ -100,6 +105,86 @@ describe('holidayCalculator', () => {
     it('should handle ISO string inputs', () => {
       // ISO string format that might come from API
       expect(calculateBusinessDays('2026-01-06T00:00:00.000Z', '2026-01-08T00:00:00.000Z')).toBe(2);
+    });
+  });
+
+  describe('Holiday type and helper functions', () => {
+    describe('getHolidaysForMonth', () => {
+      it('should return holidays for January 2026', () => {
+        const holidays = getHolidaysForMonth(2026, 0); // January is 0-indexed
+        expect(holidays).toHaveLength(2);
+        expect(holidays[0]).toEqual({
+          date: '2026-01-01',
+          name: "New Year's Day",
+          nameHr: 'Nova godina',
+        });
+        expect(holidays[1]).toEqual({
+          date: '2026-01-06',
+          name: 'Epiphany',
+          nameHr: 'Sveta tri kralja',
+        });
+      });
+
+      it('should return empty array for month with no holidays', () => {
+        const holidays = getHolidaysForMonth(2026, 1); // February
+        expect(holidays).toHaveLength(0);
+      });
+
+      it('should return holidays for December 2026', () => {
+        const holidays = getHolidaysForMonth(2026, 11); // December
+        expect(holidays).toHaveLength(2);
+        expect(holidays.map((h) => h.date)).toContain('2026-12-25');
+        expect(holidays.map((h) => h.date)).toContain('2026-12-26');
+      });
+
+      it('should return variable holidays correctly (Easter Monday)', () => {
+        const holidays = getHolidaysForMonth(2026, 3); // April 2026
+        expect(holidays.some((h) => h.date === '2026-04-06')).toBe(true);
+        const easterMonday = holidays.find((h) => h.date === '2026-04-06');
+        expect(easterMonday?.name).toBe('Easter Monday');
+      });
+
+      it('should return holidays for different years', () => {
+        const holidays2027 = getHolidaysForMonth(2027, 2); // March 2027
+        expect(holidays2027.some((h) => h.date === '2027-03-29')).toBe(true); // Easter Monday 2027
+      });
+    });
+
+    describe('getHolidayByDate', () => {
+      it('should return holiday info for a holiday date', () => {
+        const holiday = getHolidayByDate('2026-01-01');
+        expect(holiday).toBeDefined();
+        expect(holiday?.name).toBe("New Year's Day");
+        expect(holiday?.nameHr).toBe('Nova godina');
+      });
+
+      it('should return undefined for non-holiday date', () => {
+        const holiday = getHolidayByDate('2026-02-15');
+        expect(holiday).toBeUndefined();
+      });
+
+      it('should return holiday info for variable holidays', () => {
+        const holiday = getHolidayByDate('2026-06-04');
+        expect(holiday).toBeDefined();
+        expect(holiday?.name).toBe('Corpus Christi');
+      });
+    });
+
+    describe('isHoliday', () => {
+      it('should return true for holiday dates', () => {
+        expect(isHoliday('2026-01-01')).toBe(true);
+        expect(isHoliday('2026-12-25')).toBe(true);
+      });
+
+      it('should return false for non-holiday dates', () => {
+        expect(isHoliday('2026-02-15')).toBe(false);
+        expect(isHoliday('2026-07-15')).toBe(false);
+      });
+
+      it('should return true for variable holidays', () => {
+        expect(isHoliday('2026-04-06')).toBe(true); // Easter Monday 2026
+        expect(isHoliday('2027-03-29')).toBe(true); // Easter Monday 2027
+      });
     });
   });
 });

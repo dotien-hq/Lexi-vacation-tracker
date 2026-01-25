@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertTriangle } from 'lucide-react';
+import { getHolidaysForMonth, Holiday } from '@/lib/holidayCalculator';
 
 interface Profile {
   id: string;
@@ -97,6 +98,18 @@ export default function AdminCalendarPage() {
 
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
+
+  // Get holidays for current month
+  const monthHolidays = useMemo(() => {
+    const holidays = getHolidaysForMonth(currentYear, currentMonth);
+    // Create a map for O(1) lookup by day number
+    const holidayMap = new Map<number, Holiday>();
+    holidays.forEach((h) => {
+      const day = parseInt(h.date.split('-')[2], 10);
+      holidayMap.set(day, h);
+    });
+    return holidayMap;
+  }, [currentYear, currentMonth]);
 
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
@@ -243,25 +256,28 @@ export default function AdminCalendarPage() {
             const overlap = day ? hasOverlap(day) : false;
             const weekend = isWeekend(index);
             const today = day ? isToday(day) : false;
+            const holiday = day ? monthHolidays.get(day) : undefined;
 
             return (
               <div
                 key={index}
                 className={`border-r border-b border-slate-200 p-2 flex flex-col relative ${
                   !day ? 'bg-slate-50/30' : ''
-                } ${weekend ? 'bg-slate-50/50' : ''} ${today ? 'bg-blue-50/30' : ''}`}
+                } ${holiday ? 'bg-purple-50' : weekend ? 'bg-slate-50/50' : ''} ${today ? 'bg-blue-50/30' : ''}`}
               >
                 {day && (
                   <>
-                    {/* Day Number */}
-                    <div className="flex items-center justify-between mb-2">
+                    {/* Day Number and Holiday Name */}
+                    <div className="flex items-center justify-between mb-1">
                       <span
                         className={`text-sm font-bold ${
                           today
                             ? 'bg-[#0041F0] text-white w-7 h-7 flex items-center justify-center rounded-full'
-                            : weekend
-                              ? 'text-red-400'
-                              : 'text-slate-600'
+                            : holiday
+                              ? 'text-purple-600'
+                              : weekend
+                                ? 'text-red-400'
+                                : 'text-slate-600'
                         }`}
                       >
                         {day}
@@ -272,6 +288,16 @@ export default function AdminCalendarPage() {
                         </div>
                       )}
                     </div>
+
+                    {/* Holiday Label */}
+                    {holiday && (
+                      <div
+                        className="text-[10px] font-semibold text-purple-700 mb-1 truncate"
+                        title={`${holiday.name} (${holiday.nameHr})`}
+                      >
+                        {holiday.name}
+                      </div>
+                    )}
 
                     {/* Leave Requests */}
                     <div className="flex-1 space-y-1 overflow-y-auto">
@@ -294,10 +320,14 @@ export default function AdminCalendarPage() {
       </section>
 
       {/* Legend */}
-      <div className="flex items-center justify-center gap-8 bg-white px-8 py-4 rounded-[24px] border border-slate-200 shadow-lg shadow-slate-200/50">
+      <div className="flex flex-wrap items-center justify-center gap-6 bg-white px-8 py-4 rounded-[24px] border border-slate-200 shadow-lg shadow-slate-200/50">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded bg-[#0041F0]" />
           <span className="text-sm font-medium text-slate-600">Approved Leave</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-purple-100 border border-purple-300" />
+          <span className="text-sm font-medium text-slate-600">Public Holiday</span>
         </div>
         <div className="flex items-center gap-2">
           <AlertTriangle size={16} className="text-orange-500" />

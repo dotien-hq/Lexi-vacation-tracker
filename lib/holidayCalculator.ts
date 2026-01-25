@@ -1,50 +1,63 @@
-// Croatian public holidays with Nov 1 (All Saints' Day) and Nov 18 (Remembrance Day)
-const croatianHolidays = [
+// Holiday type with name information
+export interface Holiday {
+  date: string;
+  name: string;
+  nameHr: string;
+}
+
+// Croatian public holidays with names
+const croatianHolidays: Holiday[] = [
   // 2026
-  '2026-01-01', // New Year's Day
-  '2026-01-06', // Epiphany
-  '2026-04-06', // Easter Monday (variable)
-  '2026-05-01', // Labour Day
-  '2026-05-30', // Statehood Day
-  '2026-06-04', // Corpus Christi (variable)
-  '2026-06-22', // Anti-Fascist Struggle Day
-  '2026-08-05', // Victory and Homeland Thanksgiving Day
-  '2026-08-15', // Assumption of Mary
-  '2026-11-01', // All Saints' Day
-  '2026-11-18', // Remembrance Day
-  '2026-12-25', // Christmas Day
-  '2026-12-26', // St. Stephen's Day
+  { date: '2026-01-01', name: "New Year's Day", nameHr: 'Nova godina' },
+  { date: '2026-01-06', name: 'Epiphany', nameHr: 'Sveta tri kralja' },
+  { date: '2026-04-06', name: 'Easter Monday', nameHr: 'Uskrsni ponedjeljak' },
+  { date: '2026-05-01', name: 'Labour Day', nameHr: 'Praznik rada' },
+  { date: '2026-05-30', name: 'Statehood Day', nameHr: 'Dan državnosti' },
+  { date: '2026-06-04', name: 'Corpus Christi', nameHr: 'Tijelovo' },
+  { date: '2026-06-22', name: 'Anti-Fascist Struggle Day', nameHr: 'Dan antifašističke borbe' },
+  { date: '2026-08-05', name: 'Victory Day', nameHr: 'Dan pobjede' },
+  { date: '2026-08-15', name: 'Assumption of Mary', nameHr: 'Velika Gospa' },
+  { date: '2026-11-01', name: "All Saints' Day", nameHr: 'Svi sveti' },
+  { date: '2026-11-18', name: 'Remembrance Day', nameHr: 'Dan sjećanja' },
+  { date: '2026-12-25', name: 'Christmas Day', nameHr: 'Božić' },
+  { date: '2026-12-26', name: "St. Stephen's Day", nameHr: 'Sveti Stjepan' },
 
   // 2027
-  '2027-01-01', // New Year's Day
-  '2027-01-06', // Epiphany
-  '2027-03-29', // Easter Monday (variable)
-  '2027-05-01', // Labour Day
-  '2027-05-27', // Corpus Christi (variable)
-  '2027-05-30', // Statehood Day
-  '2027-06-22', // Anti-Fascist Struggle Day
-  '2027-08-05', // Victory and Homeland Thanksgiving Day
-  '2027-08-15', // Assumption of Mary
-  '2027-11-01', // All Saints' Day
-  '2027-11-18', // Remembrance Day
-  '2027-12-25', // Christmas Day
-  '2027-12-26', // St. Stephen's Day
+  { date: '2027-01-01', name: "New Year's Day", nameHr: 'Nova godina' },
+  { date: '2027-01-06', name: 'Epiphany', nameHr: 'Sveta tri kralja' },
+  { date: '2027-03-29', name: 'Easter Monday', nameHr: 'Uskrsni ponedjeljak' },
+  { date: '2027-05-01', name: 'Labour Day', nameHr: 'Praznik rada' },
+  { date: '2027-05-27', name: 'Corpus Christi', nameHr: 'Tijelovo' },
+  { date: '2027-05-30', name: 'Statehood Day', nameHr: 'Dan državnosti' },
+  { date: '2027-06-22', name: 'Anti-Fascist Struggle Day', nameHr: 'Dan antifašističke borbe' },
+  { date: '2027-08-05', name: 'Victory Day', nameHr: 'Dan pobjede' },
+  { date: '2027-08-15', name: 'Assumption of Mary', nameHr: 'Velika Gospa' },
+  { date: '2027-11-01', name: "All Saints' Day", nameHr: 'Svi sveti' },
+  { date: '2027-11-18', name: 'Remembrance Day', nameHr: 'Dan sjećanja' },
+  { date: '2027-12-25', name: 'Christmas Day', nameHr: 'Božić' },
+  { date: '2027-12-26', name: "St. Stephen's Day", nameHr: 'Sveti Stjepan' },
 
   // 2028
-  '2028-01-01', // New Year's Day
-  '2028-01-06', // Epiphany
-  '2028-04-17', // Easter Monday (variable)
-  '2028-05-01', // Labour Day
-  '2028-05-30', // Statehood Day
-  '2028-06-15', // Corpus Christi (variable)
-  '2028-06-22', // Anti-Fascist Struggle Day
-  '2028-08-05', // Victory and Homeland Thanksgiving Day
-  '2028-08-15', // Assumption of Mary
-  '2028-11-01', // All Saints' Day
-  '2028-11-18', // Remembrance Day
-  '2028-12-25', // Christmas Day
-  '2028-12-26', // St. Stephen's Day
+  { date: '2028-01-01', name: "New Year's Day", nameHr: 'Nova godina' },
+  { date: '2028-01-06', name: 'Epiphany', nameHr: 'Sveta tri kralja' },
+  { date: '2028-04-17', name: 'Easter Monday', nameHr: 'Uskrsni ponedjeljak' },
+  { date: '2028-05-01', name: 'Labour Day', nameHr: 'Praznik rada' },
+  { date: '2028-05-30', name: 'Statehood Day', nameHr: 'Dan državnosti' },
+  { date: '2028-06-15', name: 'Corpus Christi', nameHr: 'Tijelovo' },
+  { date: '2028-06-22', name: 'Anti-Fascist Struggle Day', nameHr: 'Dan antifašističke borbe' },
+  { date: '2028-08-05', name: 'Victory Day', nameHr: 'Dan pobjede' },
+  { date: '2028-08-15', name: 'Assumption of Mary', nameHr: 'Velika Gospa' },
+  { date: '2028-11-01', name: "All Saints' Day", nameHr: 'Svi sveti' },
+  { date: '2028-11-18', name: 'Remembrance Day', nameHr: 'Dan sjećanja' },
+  { date: '2028-12-25', name: 'Christmas Day', nameHr: 'Božić' },
+  { date: '2028-12-26', name: "St. Stephen's Day", nameHr: 'Sveti Stjepan' },
 ];
+
+// Create a Set for fast date lookup
+const holidayDates = new Set(croatianHolidays.map((h) => h.date));
+
+// Create a Map for fast holiday lookup by date
+const holidayByDate = new Map(croatianHolidays.map((h) => [h.date, h]));
 
 // Parse date string as local date (avoids timezone shift issues)
 function parseLocalDate(dateInput: Date | string): Date {
@@ -76,13 +89,40 @@ export function calculateBusinessDays(start: Date | string, end: Date | string):
     const formattedDate = formatLocalDate(current);
 
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    const isHoliday = croatianHolidays.includes(formattedDate);
+    const isHolidayDay = holidayDates.has(formattedDate);
 
-    if (!isWeekend && !isHoliday) {
+    if (!isWeekend && !isHolidayDay) {
       count++;
     }
 
     current.setDate(current.getDate() + 1);
   }
   return count;
+}
+
+/**
+ * Get all holidays for a specific month
+ * @param year - Full year (e.g., 2026)
+ * @param month - Month index (0-11, where 0 = January)
+ */
+export function getHolidaysForMonth(year: number, month: number): Holiday[] {
+  const monthStr = String(month + 1).padStart(2, '0');
+  const prefix = `${year}-${monthStr}-`;
+  return croatianHolidays.filter((h) => h.date.startsWith(prefix));
+}
+
+/**
+ * Get holiday information for a specific date
+ * @param date - Date string in YYYY-MM-DD format
+ */
+export function getHolidayByDate(date: string): Holiday | undefined {
+  return holidayByDate.get(date);
+}
+
+/**
+ * Check if a date is a holiday
+ * @param date - Date string in YYYY-MM-DD format
+ */
+export function isHoliday(date: string): boolean {
+  return holidayDates.has(date);
 }
