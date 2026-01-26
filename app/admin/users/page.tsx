@@ -517,7 +517,7 @@ export default function AdminUsersPage() {
                 <div className="flex items-center gap-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div
-                      className={`p-3 rounded-lg text-center ${
+                      className={`p-3 rounded-lg text-center min-w-[90px] ${
                         profile.daysCarryOver > 0
                           ? 'bg-red-50 border border-red-100'
                           : 'bg-slate-50'
@@ -534,13 +534,14 @@ export default function AdminUsersPage() {
                         >
                           {profile.daysCarryOver}
                         </span>
-                        {profile.daysCarryOver > 0 && (
-                          <AlertCircle className="text-red-500" size={14} />
-                        )}
+                        <AlertCircle
+                          className={`shrink-0 ${profile.daysCarryOver > 0 ? 'text-red-500' : 'invisible'}`}
+                          size={14}
+                        />
                       </div>
                     </div>
 
-                    <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 text-center">
+                    <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 text-center min-w-[90px]">
                       <div className="text-xs font-black uppercase tracking-wider text-blue-600/50 mb-1">
                         Current
                       </div>
@@ -550,7 +551,7 @@ export default function AdminUsersPage() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 min-w-[88px] justify-end">
                     <button
                       onClick={() => startEdit(profile)}
                       className="p-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-all"
