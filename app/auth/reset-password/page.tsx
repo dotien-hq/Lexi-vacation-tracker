@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase';
 
 export default function ResetPasswordPage() {
-  const router = useRouter();
   const supabase = createBrowserClient();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -52,14 +50,13 @@ export default function ResetPasswordPage() {
 
       if (updateError) {
         setError(updateError.message);
-        // Don't return - let finally block reset loading state
+        setLoading(false);
       } else {
-        // Only redirect on success
-        router.push('/dashboard');
+        // Full navigation ensures auth cookies are sent to middleware
+        window.location.href = '/dashboard';
       }
     } catch (err) {
       setError('Error resetting password.');
-    } finally {
       setLoading(false);
     }
   };

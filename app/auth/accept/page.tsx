@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 function AcceptInvitationForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
@@ -47,15 +46,21 @@ function AcceptInvitationForm() {
 
       if (!response.ok) {
         setError(data.error || 'Failed to activate account');
+        setLoading(false);
         return;
       }
 
-      // Success - redirect to dashboard
-      router.push('/dashboard');
+      if (data.message === 'Account created. Please sign in.') {
+        // Server-side sign-in failed — redirect to login instead
+        window.location.href = '/login';
+        return;
+      }
+
+      // Full navigation ensures auth cookies are sent to middleware
+      window.location.href = '/dashboard';
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');
       console.error('Error accepting invitation:', err);
-    } finally {
       setLoading(false);
     }
   };

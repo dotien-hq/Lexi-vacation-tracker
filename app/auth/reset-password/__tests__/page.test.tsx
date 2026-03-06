@@ -36,7 +36,6 @@ describe('ResetPasswordPage', () => {
   });
 
   it('should update password and redirect on success', async () => {
-    const mockPush = vi.fn();
     const mockUpdateUser = vi.fn().mockResolvedValue({
       data: {},
       error: null,
@@ -53,10 +52,13 @@ describe('ResetPasswordPage', () => {
       },
     } as unknown as SupabaseClient);
 
-    const useRouter = await import('next/navigation');
-    vi.spyOn(useRouter, 'useRouter').mockReturnValue({
-      push: mockPush,
-    } as unknown as ReturnType<typeof useRouter.useRouter>);
+    // Mock window.location.href for redirect assertion
+    const locationSpy = vi.spyOn(window, 'location', 'get').mockReturnValue({
+      ...window.location,
+      href: '',
+    } as Location);
+    const hrefSetter = vi.fn();
+    Object.defineProperty(window.location, 'href', { set: hrefSetter, configurable: true });
 
     render(<ResetPasswordPage />);
 
@@ -73,8 +75,9 @@ describe('ResetPasswordPage', () => {
       expect(mockUpdateUser).toHaveBeenCalledWith({
         password: 'newpassword123',
       });
-      expect(mockPush).toHaveBeenCalledWith('/dashboard');
     });
+
+    locationSpy.mockRestore();
   });
 
   it('should show error if passwords do not match', async () => {

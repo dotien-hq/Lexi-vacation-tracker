@@ -1,12 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createBrowserClient } from '@/lib/supabase';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,16 +30,16 @@ export default function LoginPage() {
           type: 'error',
           text: error.message,
         });
+        setLoading(false);
       } else {
-        // Successfully logged in, redirect to dashboard
-        router.push('/dashboard');
+        // Full navigation ensures auth cookies are sent to middleware
+        window.location.href = '/dashboard';
       }
     } catch {
       setMessage({
         type: 'error',
         text: 'An unexpected error occurred. Please try again.',
       });
-    } finally {
       setLoading(false);
     }
   };
