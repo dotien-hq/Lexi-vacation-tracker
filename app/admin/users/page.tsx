@@ -201,6 +201,39 @@ export default function AdminUsersPage() {
     }
   };
 
+  const [reinvitingId, setReinvitingId] = useState<string | null>(null);
+
+  const handleReinvite = async (profile: Profile) => {
+    if (!confirm(`Resend invitation to ${profile.fullName || profile.email}?`)) {
+      return;
+    }
+
+    setReinvitingId(profile.id);
+    try {
+      const response = await fetch(`/api/profiles/${profile.id}/reinvite`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        showMessage(
+          'success',
+          data.emailSent
+            ? 'Invitation resent successfully!'
+            : 'Token regenerated but email failed to send.'
+        );
+      } else {
+        const error = await response.json();
+        showMessage('error', error.error || 'Failed to resend invitation');
+      }
+    } catch (error) {
+      console.error('Failed to resend invitation:', error);
+      showMessage('error', 'An error occurred while resending invitation');
+    } finally {
+      setReinvitingId(null);
+    }
+  };
+
   const startEdit = (profile: Profile) => {
     setEditingProfile(profile);
     setEditForm({
@@ -552,6 +585,20 @@ export default function AdminUsersPage() {
                   </div>
 
                   <div className="flex gap-2 min-w-[88px] justify-end">
+                    {profile.status === 'PENDING' && (
+                      <button
+                        onClick={() => handleReinvite(profile)}
+                        disabled={reinvitingId === profile.id}
+                        className={`p-2 border rounded-lg transition-all ${
+                          reinvitingId === profile.id
+                            ? 'border-slate-200 text-slate-400 cursor-not-allowed'
+                            : 'border-orange-200 text-orange-600 hover:bg-orange-50'
+                        }`}
+                        title="Resend invitation"
+                      >
+                        <Mail size={18} />
+                      </button>
+                    )}
                     <button
                       onClick={() => startEdit(profile)}
                       className="p-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-all"
