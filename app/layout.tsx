@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import Navigation from '../components/Navigation';
 import { AuthProvider } from '@/lib/auth-context';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata: Metadata = {
   title: 'Lexi Vacation Tracker',
@@ -24,6 +26,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             &copy; {new Date().getFullYear()} Lexi &bull; Croatian Vacation Tracker
           </footer>
         </AuthProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
