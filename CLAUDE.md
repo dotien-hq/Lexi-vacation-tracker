@@ -51,17 +51,20 @@ prisma/
 
 ### Vacation Balance Updates
 
-When approving leave requests, use the utility functions:
+All status changes go through `lib/requestTransitions.ts` (which actions are legal from which
+status, and whether the balance is deducted/refunded) and `lib/requestMutations.ts`
+(`commitRequestChange`: optimistic lock on status + updatedAt, profile row lock, and balance
+adjustment in one transaction). Do not update `leaveRequest.status` or profile balances directly
+in routes. A DEDUCT that would make the balance negative throws `InsufficientBalanceError`
+(→ 400); approvals never go negative.
 
-```typescript
-import { deductDays, refundDays } from '@/lib/vacationBalance';
-
-// On APPROVE: deduct (carry-over first, then current year)
-const newBalance = deductDays(profile, daysCount);
-
-// On EDIT/DELETE of APPROVED request: refund (always to current year)
-const newBalance = refundDays(profile, daysCount);
-```
+| Action                         | From                               | To        | Balance                   |
+| ------------------------------ | ---------------------------------- | --------- | ------------------------- |
+| APPROVE                        | REQUESTED, DENIED, CANCELLED       | APPROVED  | deduct (carry-over first) |
+| DENY                           | REQUESTED                          | DENIED    | none                      |
+| CANCEL                         | REQUESTED, APPROVED                | CANCELLED | refund if was APPROVED    |
+| RESCHEDULE (admin date change) | any                                | REQUESTED | refund if was APPROVED    |
+| DELETE                         | any (admin) / own REQUESTED (user) | —         | refund if was APPROVED    |
 
 ### Croatian Holidays
 

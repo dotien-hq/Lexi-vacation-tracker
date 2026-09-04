@@ -25,9 +25,13 @@ The codebase has excellent foundational testing for utility functions (100% cove
 
 ## PRIORITY 1: Critical Test Coverage Gaps (URGENT)
 
-### 1.1 Leave Request API - ZERO TESTS ❌
+### 1.1 Leave Request API - PARTIALLY COVERED ⚠️
 
 **Location:** `app/api/requests/`
+
+**Update (2026-09-04):** `app/api/requests/[id]/__tests__/route.test.ts` now exists and covers the
+PATCH (approve / deny / cancel / reschedule, optimistic locking, 409s) and DELETE paths listed
+below. The remaining gap is `app/api/requests/route.ts` (GET/POST).
 
 #### Files Needing Tests:
 
@@ -53,8 +57,8 @@ The codebase has excellent foundational testing for utility functions (100% cove
      - Returns 401 for unauthenticated
      - Returns 400 for invalid data
 
-2. **`app/api/requests/[id]/route.ts`**
-   - Missing: `app/api/requests/[id]/__tests__/route.test.ts`
+2. **`app/api/requests/[id]/route.ts`** — ✅ DONE (2026-09-04)
+   - Now covered by: `app/api/requests/[id]/__tests__/route.test.ts` (26 tests)
 
    **What needs testing:**
    - PATCH endpoint (APPROVE):

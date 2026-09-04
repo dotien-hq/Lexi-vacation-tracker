@@ -85,8 +85,8 @@ The app will be available at `http://localhost:3000`
 - `startDate`: Leave start date
 - `endDate`: Leave end date
 - `daysCount`: Business days (auto-calculated)
-- `status`: REQUESTED | APPROVED | DENIED
-- `rejectionReason`: Optional reason for denial
+- `status`: REQUESTED | APPROVED | DENIED | CANCELLED
+- `rejectionReason`: Optional reason for denial or cancellation
 - `createdAt`: Timestamp
 
 ## Business Logic
