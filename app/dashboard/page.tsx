@@ -5,6 +5,8 @@ import { AlertCircle, CalendarDays, Clock, Send, CheckCircle, XCircle, User } fr
 import { createBrowserClient } from '@/lib/supabase';
 import { calculateBusinessDays } from '@/lib/holidayCalculator';
 import { calculateAvailableDays, hasSufficientBalance } from '@/lib/vacationBalance';
+import type { RequestStatusValue } from '@/types';
+import RequestStatusBadge from '@/components/RequestStatusBadge';
 
 interface Profile {
   id: string;
@@ -22,7 +24,7 @@ interface LeaveRequest {
   startDate: string;
   endDate: string;
   daysCount: number;
-  status: 'REQUESTED' | 'APPROVED' | 'DENIED';
+  status: RequestStatusValue;
   rejectionReason: string | null;
   createdAt: string;
   profile?: {
@@ -353,17 +355,7 @@ export default function DashboardPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-black ${
-                            request.status === 'REQUESTED'
-                              ? 'bg-orange-100 text-orange-700'
-                              : request.status === 'APPROVED'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-red-100 text-red-700'
-                          }`}
-                        >
-                          {request.status}
-                        </span>
+                        <RequestStatusBadge status={request.status} />
                         <span className="text-sm font-medium text-slate-500">
                           {new Date(request.createdAt).toLocaleDateString('en-US', {
                             year: 'numeric',
@@ -393,7 +385,11 @@ export default function DashboardPage() {
                         })}
                       </p>
                       {request.rejectionReason && (
-                        <p className="text-sm text-red-700 mt-2 flex items-start gap-2">
+                        <p
+                          className={`text-sm mt-2 flex items-start gap-2 ${
+                            request.status === 'DENIED' ? 'text-red-700' : 'text-slate-600'
+                          }`}
+                        >
                           <XCircle size={16} className="flex-shrink-0 mt-0.5" />
                           <span>
                             <strong>Reason:</strong> {request.rejectionReason}
@@ -407,6 +403,9 @@ export default function DashboardPage() {
                       )}
                       {request.status === 'DENIED' && (
                         <XCircle className="text-red-500" size={20} strokeWidth={2} />
+                      )}
+                      {request.status === 'CANCELLED' && (
+                        <XCircle className="text-slate-400" size={20} strokeWidth={2} />
                       )}
                       <span className="text-lg font-black text-slate-900">
                         {request.daysCount} days

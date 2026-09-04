@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ClipboardList, CheckCircle, XCircle, Calendar, User, Clock, X } from 'lucide-react';
+import type { RequestStatusValue } from '@/types';
+import RequestStatusBadge from '@/components/RequestStatusBadge';
 
 interface Profile {
   id: string;
@@ -16,7 +18,7 @@ interface LeaveRequest {
   startDate: string;
   endDate: string;
   daysCount: number;
-  status: 'REQUESTED' | 'APPROVED' | 'DENIED';
+  status: RequestStatusValue;
   rejectionReason: string | null;
   createdAt: string;
   profile: Profile;
@@ -359,9 +361,7 @@ export default function AdminRequestsPage() {
                       <h3 className="text-lg font-bold text-slate-900">
                         {request.profile.fullName || 'No name'}
                       </h3>
-                      <span className="px-2 py-0.5 rounded text-xs font-black bg-orange-100 text-orange-700">
-                        PENDING
-                      </span>
+                      <RequestStatusBadge status={request.status} />
                     </div>
 
                     <div className="space-y-1">

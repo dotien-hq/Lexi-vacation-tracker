@@ -60,7 +60,7 @@ const holidayDates = new Set(croatianHolidays.map((h) => h.date));
 const holidayByDate = new Map(croatianHolidays.map((h) => [h.date, h]));
 
 // Parse date string as local date (avoids timezone shift issues)
-function parseLocalDate(dateInput: Date | string): Date {
+export function parseLocalDate(dateInput: Date | string): Date {
   if (typeof dateInput === 'string') {
     // Parse "YYYY-MM-DD" as local date, not UTC
     const [year, month, day] = dateInput.split('T')[0].split('-').map(Number);
