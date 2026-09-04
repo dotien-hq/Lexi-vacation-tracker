@@ -23,6 +23,7 @@ enum RequestStatus {
   REQUESTED
   APPROVED
   DENIED
+  CANCELLED
 }
 
 model Profile {
@@ -63,6 +64,7 @@ model LeaveRequest {
   endDate         DateTime
   daysCount       Int
   status          RequestStatus @default(REQUESTED)
+  // Required when DENIED, optional when CANCELLED, cleared on reschedule
   rejectionReason String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
