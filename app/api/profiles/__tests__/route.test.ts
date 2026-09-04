@@ -68,7 +68,7 @@ describe('POST /api/profiles', () => {
       }),
     });
 
-    const response = await POST(request);
+    const response = await POST(request as never);
     const data = await response.json();
 
     expect(response.status).toBe(201);
@@ -96,7 +96,7 @@ describe('POST /api/profiles', () => {
       }),
     });
 
-    const response = await POST(request);
+    const response = await POST(request as never);
     const data = await response.json();
 
     expect(response.status).toBe(400);

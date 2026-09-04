@@ -59,7 +59,9 @@ describe('POST /api/profiles/[id]/reinvite', () => {
       method: 'POST',
     });
 
-    const response = await POST(request, { params: { id: 'profile-123' } });
+    const response = await POST(request as never, {
+      params: Promise.resolve({ id: 'profile-123' }),
+    });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -82,7 +84,9 @@ describe('POST /api/profiles/[id]/reinvite', () => {
       method: 'POST',
     });
 
-    const response = await POST(request, { params: { id: 'profile-123' } });
+    const response = await POST(request as never, {
+      params: Promise.resolve({ id: 'profile-123' }),
+    });
     const data = await response.json();
 
     expect(response.status).toBe(400);
