@@ -9,7 +9,7 @@ if (apiKey) {
 const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@example.com';
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-interface EmailResult {
+export interface EmailResult {
   success: boolean;
   error?: string;
 }
@@ -537,14 +537,14 @@ export async function sendDenialEmail(
         { label: 'Start Date', value: formattedStartDate },
         { label: 'End Date', value: formattedEndDate },
         { label: 'Business Days', value: `${daysCount} ${daysCount === 1 ? 'day' : 'days'}` },
-        { label: 'Reason', value: rejectionReason },
+        { label: 'Reason', value: escapeHtml(rejectionReason) },
       ],
       theme
     );
 
     const content = `
       <h2 style="color: #0F172A; font-size: 24px; font-weight: 600; margin: 0 0 16px;">Leave Request Update</h2>
-      <p style="margin: 16px 0;">Hello <strong style="color: #1E293B;">${userName}</strong>,</p>
+      <p style="margin: 16px 0;">Hello <strong style="color: #1E293B;">${escapeHtml(userName)}</strong>,</p>
       <p style="margin: 16px 0;">Your leave request has been reviewed and unfortunately cannot be approved at this time.</p>
       ${dataCard}
       <p style="margin: 16px 0; color: #64748B;">If you have questions or would like to discuss this further, please contact your administrator.</p>
@@ -564,6 +564,166 @@ export async function sendDenialEmail(
     return { success: true };
   } catch (error) {
     console.error('Failed to send denial email:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/** Minimal HTML escaping for user-supplied strings interpolated into templates. */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatEmailDate(date: Date): string {
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+/**
+ * Send cancellation email when an admin cancels a leave request
+ * @param wasApproved Whether days were refunded (request was APPROVED before cancelling)
+ * @param reason Optional reason entered by the admin
+ */
+export async function sendCancellationEmail(
+  email: string,
+  userName: string,
+  startDate: Date,
+  endDate: Date,
+  daysCount: number,
+  wasApproved: boolean,
+  reason?: string
+): Promise<EmailResult> {
+  if (!isEmailConfigured()) {
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  try {
+    const formattedStartDate = formatEmailDate(startDate);
+    const formattedEndDate = formatEmailDate(endDate);
+    const dayWord = daysCount === 1 ? 'day' : 'days';
+    const safeName = escapeHtml(userName);
+
+    const theme: EmailTheme = {
+      accentColor: '#94A3B8',
+      cardBackground: '#F8FAFC',
+      cardBorderColor: '#CBD5E1',
+    };
+
+    const items = [
+      { label: 'Start Date', value: formattedStartDate },
+      { label: 'End Date', value: formattedEndDate },
+      { label: 'Business Days', value: `${daysCount} ${dayWord}` },
+    ];
+    if (reason) {
+      items.push({ label: 'Reason', value: escapeHtml(reason) });
+    }
+    const dataCard = generateDataCard(items, theme);
+
+    const refundSentence = wasApproved
+      ? `The ${daysCount} ${dayWord} ${daysCount === 1 ? 'has' : 'have'} been returned to your vacation balance.`
+      : '';
+
+    const content = `
+      <h2 style="color: #0F172A; font-size: 24px; font-weight: 600; margin: 0 0 16px;">Leave Request Cancelled</h2>
+      <p style="margin: 16px 0;">Hello <strong style="color: #1E293B;">${safeName}</strong>,</p>
+      <p style="margin: 16px 0;">Your leave request has been cancelled by an administrator.</p>
+      ${dataCard}
+      ${refundSentence ? `<p style="margin: 16px 0;">${refundSentence}</p>` : ''}
+      <p style="margin: 16px 0; color: #64748B;">If you have questions, please contact your administrator.</p>
+    `;
+
+    const html = generateEmailTemplate(content, theme);
+
+    const msg = {
+      to: email,
+      from: fromEmail,
+      subject: 'Leave Request Cancelled',
+      text: `Hello ${userName},\n\nYour leave request has been cancelled by an administrator.\n\nStart Date: ${formattedStartDate}\nEnd Date: ${formattedEndDate}\nBusiness Days: ${daysCount}${reason ? `\nReason: ${reason}` : ''}\n\n${refundSentence ? `${refundSentence}\n\n` : ''}If you have questions, please contact your administrator.\n\nBest regards,\nLexi Vacation Tracker Team`,
+      html,
+    };
+
+    await sgMail.send(msg);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send cancellation email:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * Send reschedule email when an admin changes the dates of a leave request.
+ * The request returns to REQUESTED and must be approved again.
+ */
+export async function sendRescheduleEmail(
+  email: string,
+  userName: string,
+  previousStartDate: Date,
+  previousEndDate: Date,
+  newStartDate: Date,
+  newEndDate: Date,
+  daysCount: number
+): Promise<EmailResult> {
+  if (!isEmailConfigured()) {
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  try {
+    const prevStart = formatEmailDate(previousStartDate);
+    const prevEnd = formatEmailDate(previousEndDate);
+    const newStart = formatEmailDate(newStartDate);
+    const newEnd = formatEmailDate(newEndDate);
+    const safeName = escapeHtml(userName);
+
+    const theme: EmailTheme = {
+      accentColor: '#F59E0B',
+      cardBackground: '#FFFBEB',
+      cardBorderColor: '#FCD34D',
+    };
+
+    const dataCard = generateDataCard(
+      [
+        { label: 'Previous Dates', value: `${prevStart} – ${prevEnd}` },
+        { label: 'New Start Date', value: newStart },
+        { label: 'New End Date', value: newEnd },
+        { label: 'Business Days', value: `${daysCount} ${daysCount === 1 ? 'day' : 'days'}` },
+      ],
+      theme
+    );
+
+    const content = `
+      <h2 style="color: #0F172A; font-size: 24px; font-weight: 600; margin: 0 0 16px;">Leave Dates Updated</h2>
+      <p style="margin: 16px 0;">Hello <strong style="color: #1E293B;">${safeName}</strong>,</p>
+      <p style="margin: 16px 0;">An administrator has changed the dates of your leave request. The request is now pending and will need to be approved again.</p>
+      ${dataCard}
+      <p style="margin: 16px 0; color: #64748B;">If you did not expect this change, please contact your administrator.</p>
+    `;
+
+    const html = generateEmailTemplate(content, theme, {
+      text: 'View My Requests',
+      url: `${appUrl}/dashboard`,
+    });
+
+    const msg = {
+      to: email,
+      from: fromEmail,
+      subject: 'Leave Dates Updated - Pending Approval',
+      text: `Hello ${userName},\n\nAn administrator has changed the dates of your leave request. The request is now pending and will need to be approved again.\n\nPrevious Dates: ${prevStart} – ${prevEnd}\nNew Start Date: ${newStart}\nNew End Date: ${newEnd}\nBusiness Days: ${daysCount}\n\nView your requests: ${appUrl}/dashboard\n\nBest regards,\nLexi Vacation Tracker Team`,
+      html,
+    };
+
+    await sgMail.send(msg);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send reschedule email:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
