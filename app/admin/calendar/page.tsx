@@ -3,31 +3,50 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertTriangle } from 'lucide-react';
-import { getHolidaysForMonth, Holiday } from '@/lib/holidayCalculator';
+import { getHolidaysForMonth, Holiday, parseLocalDate } from '@/lib/holidayCalculator';
+import {
+  ALL_REQUEST_STATUSES,
+  OVERLAP_STATUSES,
+  REQUEST_STATUS_META,
+  REQUEST_STATUS_PRIORITY,
+  formatLeaveDate,
+} from '@/lib/requestStatus';
+import type { LeaveRequestWithProfile, RequestStatusValue } from '@/types';
+import EventDetailModal from '@/components/calendar/EventDetailModal';
 
-interface Profile {
-  id: string;
-  email: string;
-  fullName: string | null;
-}
-
-interface LeaveRequest {
-  id: string;
-  profileId: string;
-  startDate: string;
-  endDate: string;
-  daysCount: number;
-  status: 'REQUESTED' | 'APPROVED' | 'DENIED';
-  profile: Profile;
-}
+const monthNames = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export default function AdminCalendarPage() {
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
-  const [requests, setRequests] = useState<LeaveRequest[]>([]);
+  const [requests, setRequests] = useState<LeaveRequestWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [visibleStatuses, setVisibleStatuses] = useState<Set<RequestStatusValue>>(
+    () => new Set(ALL_REQUEST_STATUSES)
+  );
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const showMessage = useCallback((type: 'success' | 'error', text: string) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), 5000);
+  }, []);
 
   // Check user role before rendering admin content
   useEffect(() => {
@@ -38,13 +57,11 @@ export default function AdminCalendarPage() {
           router.push('/login');
           return;
         }
-
         const profile = await res.json();
         if (profile?.role !== 'ADMIN') {
           router.push('/access-denied');
           return;
         }
-
         setIsAuthorized(true);
       } catch (error) {
         console.error('Failed to verify role:', error);
@@ -53,25 +70,25 @@ export default function AdminCalendarPage() {
         setIsChecking(false);
       }
     }
-
     checkRole();
   }, [router]);
 
+  // NOTE: never sets loading=true — refetches after modal actions must not unmount the modal.
   const fetchRequests = useCallback(async () => {
     try {
-      const response = await fetch('/api/requests?status=APPROVED');
+      const response = await fetch('/api/requests');
       if (response.ok) {
-        const data = await response.json();
-        setRequests(data);
+        setRequests(await response.json());
       } else {
-        console.error('Failed to fetch requests');
+        showMessage('error', 'Failed to load requests');
       }
     } catch (error) {
       console.error('Failed to fetch requests:', error);
+      showMessage('error', 'Failed to load requests');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showMessage]);
 
   useEffect(() => {
     if (isAuthorized) {
@@ -79,86 +96,67 @@ export default function AdminCalendarPage() {
     }
   }, [fetchRequests, isAuthorized]);
 
-  const monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-
-  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+  const startDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1; // Monday-first grid
 
-  // Get holidays for current month
   const monthHolidays = useMemo(() => {
-    const holidays = getHolidaysForMonth(currentYear, currentMonth);
-    // Create a map for O(1) lookup by day number
     const holidayMap = new Map<number, Holiday>();
-    holidays.forEach((h) => {
-      const day = parseInt(h.date.split('-')[2], 10);
-      holidayMap.set(day, h);
+    getHolidaysForMonth(currentYear, currentMonth).forEach((h) => {
+      holidayMap.set(parseInt(h.date.split('-')[2], 10), h);
     });
     return holidayMap;
   }, [currentYear, currentMonth]);
 
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-  // Convert Sunday (0) to 6, and shift Monday to 0
-  const startDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+  // day-of-month → every request (any status) covering that day
+  const requestsByDay = useMemo(() => {
+    const map = new Map<number, LeaveRequestWithProfile[]>();
+    for (let day = 1; day <= daysInMonth; day++) map.set(day, []);
 
-  const prevMonth = () => {
-    setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
-  };
+    const monthStart = new Date(currentYear, currentMonth, 1);
+    const monthEnd = new Date(currentYear, currentMonth, daysInMonth);
 
-  const nextMonth = () => {
-    setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
-  };
+    for (const request of requests) {
+      const start = parseLocalDate(request.startDate);
+      const end = parseLocalDate(request.endDate);
+      if (end < monthStart || start > monthEnd) continue;
 
-  const goToToday = () => {
-    setCurrentDate(new Date());
-  };
+      const from = start < monthStart ? 1 : start.getDate();
+      const to = end > monthEnd ? daysInMonth : end.getDate();
+      for (let day = from; day <= to; day++) {
+        map.get(day)!.push(request);
+      }
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => REQUEST_STATUS_PRIORITY[a.status] - REQUEST_STATUS_PRIORITY[b.status]);
+    }
+    return map;
+  }, [requests, currentYear, currentMonth, daysInMonth]);
 
-  // Build calendar grid
-  const calendarDays: (number | null)[] = [];
-  for (let i = 0; i < startDay; i++) {
-    calendarDays.push(null);
-  }
-  for (let i = 1; i <= daysInMonth; i++) {
-    calendarDays.push(i);
-  }
+  const selectedRequest = selectedId ? (requests.find((r) => r.id === selectedId) ?? null) : null;
+  const closeModal = useCallback(() => setSelectedId(null), []);
 
-  // Get requests for a specific day
-  const getRequestsForDay = (day: number): LeaveRequest[] => {
-    const date = new Date(currentYear, currentMonth, day);
-    date.setHours(0, 0, 0, 0);
-
-    return requests.filter((request) => {
-      const start = new Date(request.startDate);
-      const end = new Date(request.endDate);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(0, 0, 0, 0);
-
-      return date >= start && date <= end;
+  const toggleStatus = (status: RequestStatusValue) => {
+    setVisibleStatuses((prev) => {
+      const next = new Set(prev);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      return next;
     });
   };
 
-  // Detect overlaps for a specific day
-  const hasOverlap = (day: number): boolean => {
-    const dayRequests = getRequestsForDay(day);
-    return dayRequests.length > 1;
-  };
+  const prevMonth = () => setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
+  const nextMonth = () => setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
+  const goToToday = () => setCurrentDate(new Date());
 
-  const isToday = (day: number): boolean => {
+  const calendarDays: (number | null)[] = [
+    ...Array<null>(startDay).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+
+  const isToday = (day: number) => {
     const today = new Date();
     return (
       day === today.getDate() &&
@@ -166,10 +164,7 @@ export default function AdminCalendarPage() {
       currentYear === today.getFullYear()
     );
   };
-
-  const isWeekend = (dayIndex: number): boolean => {
-    return dayIndex % 7 === 5 || dayIndex % 7 === 6;
-  };
+  const isWeekend = (dayIndex: number) => dayIndex % 7 === 5 || dayIndex % 7 === 6;
 
   if (isChecking) {
     return (
@@ -196,9 +191,23 @@ export default function AdminCalendarPage() {
       <header>
         <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Team Calendar</h1>
         <p className="text-slate-500 mt-2 font-medium">
-          View approved leave requests and identify scheduling conflicts.
+          View and manage all leave requests, and spot scheduling conflicts. Click an entry for
+          details.
         </p>
       </header>
+
+      {message && (
+        <div
+          role="status"
+          className={`p-4 rounded-lg ${
+            message.type === 'success'
+              ? 'bg-green-50 text-green-800 border border-green-200'
+              : 'bg-red-50 text-red-800 border border-red-200'
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
 
       {/* Calendar Container */}
       <section className="bg-white rounded-[24px] border border-slate-200 shadow-lg shadow-slate-200/50 overflow-hidden">
@@ -213,22 +222,27 @@ export default function AdminCalendarPage() {
 
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={prevMonth}
               className="p-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-all"
               title="Previous month"
+              aria-label="Previous month"
             >
               <ChevronLeft size={20} strokeWidth={2.5} />
             </button>
             <button
+              type="button"
               onClick={goToToday}
               className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-50 transition-all"
             >
               Today
             </button>
             <button
+              type="button"
               onClick={nextMonth}
               className="p-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-all"
               title="Next month"
+              aria-label="Next month"
             >
               <ChevronRight size={20} strokeWidth={2.5} />
             </button>
@@ -252,8 +266,12 @@ export default function AdminCalendarPage() {
         {/* Calendar Grid */}
         <div className="grid grid-cols-7 auto-rows-[140px]">
           {calendarDays.map((day, index) => {
-            const dayRequests = day ? getRequestsForDay(day) : [];
-            const overlap = day ? hasOverlap(day) : false;
+            const allForDay = day ? (requestsByDay.get(day) ?? []) : [];
+            const dayRequests = allForDay.filter((r) => visibleStatuses.has(r.status));
+            const peopleAway = new Set(
+              allForDay.filter((r) => OVERLAP_STATUSES.includes(r.status)).map((r) => r.profileId)
+            );
+            const overlap = peopleAway.size > 1;
             const weekend = isWeekend(index);
             const today = day ? isToday(day) : false;
             const holiday = day ? monthHolidays.get(day) : undefined;
@@ -267,7 +285,6 @@ export default function AdminCalendarPage() {
               >
                 {day && (
                   <>
-                    {/* Day Number and Holiday Name */}
                     <div className="flex items-center justify-between mb-1">
                       <span
                         className={`text-sm font-bold ${
@@ -283,13 +300,16 @@ export default function AdminCalendarPage() {
                         {day}
                       </span>
                       {overlap && (
-                        <div title="Multiple people away">
-                          <AlertTriangle size={16} className="text-orange-500" />
-                        </div>
+                        <span
+                          role="img"
+                          aria-label="Multiple people away"
+                          title="Multiple people away"
+                        >
+                          <AlertTriangle size={16} className="text-orange-500" aria-hidden="true" />
+                        </span>
                       )}
                     </div>
 
-                    {/* Holiday Label */}
                     {holiday && (
                       <div
                         className="text-[10px] font-semibold text-purple-700 mb-1 truncate"
@@ -299,17 +319,24 @@ export default function AdminCalendarPage() {
                       </div>
                     )}
 
-                    {/* Leave Requests */}
                     <div className="flex-1 space-y-1 overflow-y-auto">
-                      {dayRequests.map((request) => (
-                        <div
-                          key={request.id}
-                          className="text-xs font-bold px-2 py-1 rounded bg-[#0041F0] text-white truncate cursor-default hover:bg-blue-700 transition-colors"
-                          title={`${request.profile.fullName || request.profile.email} - ${new Date(request.startDate).toLocaleDateString()} to ${new Date(request.endDate).toLocaleDateString()}`}
-                        >
-                          {request.profile.fullName || request.profile.email.split('@')[0]}
-                        </div>
-                      ))}
+                      {dayRequests.map((request) => {
+                        const meta = REQUEST_STATUS_META[request.status];
+                        const name = request.profile.fullName || request.profile.email;
+                        const range = `${formatLeaveDate(request.startDate)} – ${formatLeaveDate(request.endDate)}`;
+                        return (
+                          <button
+                            type="button"
+                            key={request.id}
+                            onClick={() => setSelectedId(request.id)}
+                            title={`${name} · ${meta.label} · ${range}`}
+                            aria-label={`${name}, ${meta.label}, ${range}`}
+                            className={`w-full text-left text-xs font-bold px-2 py-1 rounded truncate transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0041F0] ${meta.chip}`}
+                          >
+                            {request.profile.fullName || request.profile.email.split('@')[0]}
+                          </button>
+                        );
+                      })}
                     </div>
                   </>
                 )}
@@ -319,21 +346,54 @@ export default function AdminCalendarPage() {
         </div>
       </section>
 
-      {/* Legend */}
-      <div className="flex flex-wrap items-center justify-center gap-6 bg-white px-8 py-4 rounded-[24px] border border-slate-200 shadow-lg shadow-slate-200/50">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-[#0041F0]" />
-          <span className="text-sm font-medium text-slate-600">Approved Leave</span>
-        </div>
-        <div className="flex items-center gap-2">
+      {/* Legend + status filters */}
+      <div className="flex flex-wrap items-center justify-center gap-3 bg-white px-8 py-4 rounded-[24px] border border-slate-200 shadow-lg shadow-slate-200/50">
+        {ALL_REQUEST_STATUSES.map((status) => {
+          const meta = REQUEST_STATUS_META[status];
+          const on = visibleStatuses.has(status);
+          return (
+            <button
+              type="button"
+              key={status}
+              onClick={() => toggleStatus(status)}
+              aria-pressed={on}
+              title={
+                on
+                  ? `Hide ${meta.label.toLowerCase()} requests`
+                  : `Show ${meta.label.toLowerCase()} requests`
+              }
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
+                on
+                  ? 'border-slate-300 bg-slate-50 text-slate-700'
+                  : 'border-dashed border-slate-300 bg-white text-slate-500'
+              }`}
+            >
+              <span
+                className={`w-4 h-4 rounded ${meta.swatch} ${on ? '' : 'opacity-30'}`}
+                aria-hidden="true"
+              />
+              <span className="text-sm font-medium">{meta.label}</span>
+            </button>
+          );
+        })}
+        <div className="flex items-center gap-2 px-3 py-1.5">
           <div className="w-4 h-4 rounded bg-purple-100 border border-purple-300" />
           <span className="text-sm font-medium text-slate-600">Public Holiday</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 px-3 py-1.5">
           <AlertTriangle size={16} className="text-orange-500" />
           <span className="text-sm font-medium text-slate-600">Overlap Detected</span>
         </div>
       </div>
+
+      {selectedRequest && (
+        <EventDetailModal
+          request={selectedRequest}
+          onClose={closeModal}
+          onChanged={fetchRequests}
+          onNotify={showMessage}
+        />
+      )}
     </div>
   );
 }
